@@ -1,2 +1,2 @@
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:Waseek@123@localhost/pharmacy_db'
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:Waseek%40123@127.0.0.1:3306/pharmacy_db'
 SQLALCHEMY_TRACK_MODIFICATIONS = False

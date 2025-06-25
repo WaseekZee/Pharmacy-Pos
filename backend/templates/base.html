@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pharmacy POS{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        .sidebar-gradient {
+            background: linear-gradient(180deg, #1ca254 0%, #163525 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            transition: transform 0.2s ease-in-out;
+        }
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .submenu.open {
+            max-height: 200px;
+        }
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="bg-gray-50 flex">
+    <!-- Sidebar -->
+    <div class="w-64 sidebar-gradient min-h-screen shadow-xl">
+        <div class="p-6">
+            <!-- Logo -->
+            <div class="flex items-center mb-8">
+                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-bath text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-white font-bold text-lg">Pharmacy POS</h1>
+                    <p class="text-blue-200 text-xs">Admin Panel</p>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="space-y-2">
+                <a href="#" class="flex items-center px-4 py-3 text-white bg-white/20 rounded-lg hover:bg-white/30 transition-all duration-200">
+                    <i class="fas fa-tachometer-alt w-5 mr-3"></i>
+                    Dashboard
+                </a>
+                <a href="#" class="flex items-center px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+                    <i class="fas fa-receipt w-5 mr-3"></i>
+                    Billing
+                </a>
+                <a href="#" class="flex items-center px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+                    <i class="fas fa-hand-holding-usd w-5 mr-3"></i>
+                    Loan
+                </a>
+                <a href="#" class="flex items-center px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+                    <i class="fas fa-truck-loading w-5 mr-3"></i>
+                    Return
+                </a>
+                <a href="#" class="flex items-center px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+                    <i class="fas fa-users w-5 mr-3"></i>
+                    Supplier
+                </a>
+                <a href="#" class="flex items-center px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+                    <i class="fas fa-chart-bar w-5 mr-3"></i>
+                    Reports
+                </a>
+
+                <!-- Product Management with Submenu -->
+                <div>
+                    <button onclick="toggleSubmenu()" class="w-full flex items-center justify-between px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+                        <div class="flex items-center">
+                            <i class="fas fa-box w-5 mr-3"></i>
+                            Product Management
+                        </div>
+                        <i id="submenuIcon" class="fas fa-chevron-down text-sm"></i>
+                    </button>
+                    <div id="submenu" class="submenu ml-4 mt-1">
+                        <a href="#" class="flex items-center px-4 py-2 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200 text-sm">
+                            <i class="fas fa-plus w-4 mr-3"></i>
+                            Add Product
+                        </a>
+                        <a href="#" class="flex items-center px-4 py-2 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200 text-sm">
+                            <i class="fas fa-ban w-4 mr-3"></i>
+                            Disable Product
+                        </a>
+                        <a href="#" class="flex items-center px-4 py-2 text-blue-200 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200 text-sm">
+                            <i class="fas fa-edit w-4 mr-3"></i>
+                            Update Product
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Sign Out -->
+        <div class="absolute bottom-6 left-6 right-6">
+            <a href="#" class="flex items-center px-4 py-3 text-red-300 hover:text-red-200 hover:bg-red-500/20 rounded-lg transition-all duration-200">
+                <i class="fas fa-sign-out-alt w-5 mr-3"></i>
+                Sign Out
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-6">
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+        function toggleSubmenu() {
+            const submenu = document.getElementById('submenu');
+            const icon = document.getElementById('submenuIcon');
+            submenu.classList.toggle('open');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+    </script>
+</body>
+</html>
