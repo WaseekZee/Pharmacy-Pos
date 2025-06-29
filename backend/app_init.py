@@ -20,10 +20,12 @@ def create_app():
     from controllers.db_test_controller import test_bp
     from controllers.brand_controller import brand_bp
     from controllers.ui_controller import ui_bp
+    from controllers.product_controller import product_bp
 
     app.register_blueprint(test_bp)
     app.register_blueprint(brand_bp)
     app.register_blueprint(ui_bp)
+    app.register_blueprint(product_bp)
 
     return app
 
