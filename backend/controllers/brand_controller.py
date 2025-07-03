@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for , flash
 from app_init import db
 from sqlalchemy import text
+from flask_login import login_required
+
 
 brand_bp = Blueprint('brand_bp', __name__, url_prefix='/brands')
-
 @brand_bp.route('/add', methods=['GET', 'POST'])
+@login_required
 def add_brand():
     if request.method == 'POST':
         name = request.form['name']

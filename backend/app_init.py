@@ -1,32 +1,46 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os, sys
+from flask_login import LoginManager
+from sqlalchemy import text
 
 # Enable import of local files
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-db = SQLAlchemy()  # Global DB object (correct)
+db = SQLAlchemy()
+login_manager = LoginManager()
+login_manager.login_view = 'auth_bp.login'  # Redirect to login page if not logged in
 
 def create_app():
-    app = Flask(__name__)  # This is the actual app instance used
+    app = Flask(__name__)
     app.config.from_pyfile('config.py')
-
-    # ✅ Set secret key here, where the app is being configured
     app.secret_key = 'Waseek-123456'
 
     db.init_app(app)
+    login_manager.init_app(app)
 
-    # Register blueprints
+    # ✅ Register Blueprints
     from controllers.db_test_controller import test_bp
     from controllers.brand_controller import brand_bp
     from controllers.ui_controller import ui_bp
     from controllers.product_controller import product_bp
+    from controllers.auth_controller import auth_bp  # <- ADD THIS
 
     app.register_blueprint(test_bp)
     app.register_blueprint(brand_bp)
     app.register_blueprint(ui_bp)
     app.register_blueprint(product_bp)
+    app.register_blueprint(auth_bp)  # <- ADD THIS
 
     return app
 
+# ✅ Import your custom EmployeeUser class
+from models.models import EmployeeUser
 
+@login_manager.user_loader
+def load_user(user_id):
+    result = db.session.execute(
+        text("SELECT * FROM Employee WHERE EmployeeID = :id"),
+        {'id': user_id}
+    ).fetchone()
+    return EmployeeUser(result) if result else None

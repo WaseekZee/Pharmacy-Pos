@@ -1,12 +1,15 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app_init import db
 from sqlalchemy import text
+from flask_login import login_required
+
 
 product_bp = Blueprint('product_bp', __name__, url_prefix='/products')
 
 
 # ------------------ Add Product ------------------
 @product_bp.route('/add', methods=['GET', 'POST'])
+@login_required
 def add_product():
     if request.method == 'POST':
         name = request.form['productName']
@@ -40,6 +43,7 @@ def add_product():
 
 # ------------------ View Products ------------------
 @product_bp.route('/view', methods=['GET'])
+@login_required
 def view_products():
     products = db.session.execute(text("""
         SELECT p.ProductID, p.ProductName AS name, p.Description AS description,
@@ -55,6 +59,7 @@ def view_products():
 
 # ------------------ Edit Product ------------------
 @product_bp.route('/edit/<int:product_id>', methods=['POST'])
+@login_required
 def edit_product(product_id):
     new_name = request.form['editProductName']
     new_description = request.form['editDescription']
@@ -89,6 +94,7 @@ def edit_product(product_id):
 
 # ------------------ Delete Product ------------------
 @product_bp.route('/delete/<int:product_id>', methods=['POST'])
+@login_required
 def delete_product(product_id):
     try:
         db.session.execute(
