@@ -25,12 +25,14 @@ def create_app():
     from controllers.ui_controller import ui_bp
     from controllers.product_controller import product_bp
     from controllers.auth_controller import auth_bp  # <- ADD THIS
+    from controllers.order_controller import order_bp
 
     app.register_blueprint(test_bp)
     app.register_blueprint(brand_bp)
     app.register_blueprint(ui_bp)
     app.register_blueprint(product_bp)
     app.register_blueprint(auth_bp)  # <- ADD THIS
+    app.register_blueprint(order_bp)
 
     return app
 
