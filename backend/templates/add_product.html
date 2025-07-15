@@ -1,6 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container py-5">
+    <!-- Navigation Buttons -->
+    <div class="d-flex gap-3 mb-4">
+        <a href="{{ url_for('product_bp.add_product') }}" class="btn d-flex align-items-center gap-2 px-4 py-2 rounded-3 fw-medium text-white" style="background: linear-gradient(135deg, #145c5a 0%, #1dd84f 100%);">
+            <i class="fas fa-plus"></i>
+            Add Product
+        </a>
+        <a href="{{ url_for('product_bp.view_products') }}" class="btn d-flex align-items-center gap-2 px-4 py-2 rounded-3 fw-medium bg-light text-dark">
+            <i class="fas fa-table"></i>
+            View Products
+        </a>
+    </div>
+
+    <!-- Header -->
     <div class="d-flex align-items-center mb-4">
         <div class="bg-success bg-opacity-10 rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
             <i class="fas fa-plus fa-lg text-success"></i>
@@ -9,15 +22,6 @@
             <h1 class="mb-0 fw-bold text-dark fs-3">Add Product</h1>
             <p class="text-muted mb-0">Fill in the form to add a new product to your inventory</p>
         </div>
-    </div>
-
-    <div class="mb-4">
-        <a href="{{ url_for('product_bp.add_product') }}" class="btn btn-tab active">
-            <i class="fas fa-plus"></i> Add Product
-        </a>
-        <a href="{{ url_for('product_bp.view_products') }}" class="btn btn-tab">
-            <i class="fas fa-table"></i> View Products
-        </a>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -33,33 +37,64 @@
       {% endif %}
     {% endwith %}
 
-    <div class="card card-custom p-4">
-        <form method="POST" action="{{ url_for('product_bp.add_product') }}">
-            <div class="mb-3">
-                <label for="productName" class="form-label">Product Name</label>
-                <input type="text" class="form-control" id="productName" name="productName" required>
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-5">
+                    <form method="POST" action="{{ url_for('product_bp.add_product') }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="productName" class="form-label fw-medium text-dark">
+                                    <i class="fas fa-box text-success me-2"></i>Product Name
+                                </label>
+                                <input type="text" class="form-control rounded-2" id="productName" name="productName" placeholder="Enter product name" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label fw-medium text-dark">
+                                    <i class="fas fa-tags text-success me-2"></i>Category
+                                </label>
+                                <input type="text" class="form-control rounded-2" id="category" name="category" placeholder="Enter category">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="brand" class="form-label fw-medium text-dark">
+                                    <i class="fas fa-trademark text-success me-2"></i>Brand
+                                </label>
+                                <select class="form-select rounded-2" id="brand" name="brand" required>
+                                    <option value="">Select a brand</option>
+                                    {% for brand in brands %}
+                                        <option value="{{ brand.BrandID }}">{{ brand.Name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <!-- Empty column for balance -->
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-medium text-dark">
+                                <i class="fas fa-align-left text-success me-2"></i>Description
+                            </label>
+                            <textarea class="form-control rounded-2" id="description" name="description" rows="3" placeholder="Enter product description"></textarea>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn py-2 text-white fw-medium rounded-2" style="background: linear-gradient(135deg, #145c5a 0%, #1dd84f 100%);">
+                                <i class="fas fa-plus me-2"></i>Add Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-            </div>
-            <div class="mb-3">
-                <label for="category" class="form-label">Category</label>
-                <input type="text" class="form-control" id="category" name="category">
-            </div>
-            <div class="mb-3">
-                <label for="brand" class="form-label">Brand</label>
-                <select class="form-select" id="brand" name="brand" required>
-                    <option value="">Select a brand</option>
-                    {% for brand in brands %}
-                        <option value="{{ brand.BrandID }}">{{ brand.Name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="submit" class="btn btn-success">Add Product</button>
-        </form>
+        </div>
     </div>
 </div>
+
 <script>
     // Auto-dismiss flash alert after 3 seconds
     setTimeout(function () {

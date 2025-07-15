@@ -38,7 +38,7 @@ def add_product():
             return redirect(url_for('product_bp.add_product'))
 
     brands = db.session.execute(text("SELECT BrandID, Name FROM Brand")).fetchall()
-    return render_template("add_product.html", brands=brands)
+    return render_template("add_product.html", brands=brands , active_page="product")
 
 
 # ------------------ View Products ------------------
@@ -54,7 +54,7 @@ def view_products():
 
     brands = db.session.execute(text("SELECT BrandID, Name FROM Brand")).fetchall()
 
-    return render_template("view_products.html", products=products, brands=brands)
+    return render_template("view_products.html", products=products, brands=brands , active_page="product")
 
 
 # ------------------ Edit Product ------------------

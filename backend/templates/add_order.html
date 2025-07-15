@@ -1,251 +1,272 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Add Order</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .product-row { margin-bottom: 15px; }
-  </style>
-</head>
-<body class="p-4">
-  <div class="container">
-    <h2 class="mb-4">Place Order</h2>
-
-    <form method="POST" action="{{ url_for('order_bp.add_order') }}">
-      <div class="row mb-3">
-        <div class="col">
-          <label for="date" class="form-label">Order Date</label>
-          <input type="date" class="form-control" name="date" id="date" required>
-        </div>
-
-        <div class="col">
-          <label for="payment_type" class="form-label">Payment Type</label>
-          <select name="payment_type" class="form-select" required>
-            <option value="Cash" selected>Cash</option>
-            <option value="Card">Card</option>
-            <option value="Online">Online</option>
-          </select>
-        </div>
-
-        <div class="col">
-          <label for="customer_id" class="form-label">Customer</label>
-          <div class="input-group">
-            <select name="customer_id" id="customer_id" class="form-select" required>
-              {% for c in customers %}
-                <option value="{{ c.CustomerID }}" {% if c.CustomerID == 7 %}selected{% endif %}>
-                  {{ c.Name }} ({{ c.Phone }})
-                </option>
-              {% endfor %}
-            </select>
-
-            <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#addCustomerModal">+</button>
-          </div>
-        </div>
-      </div>
-
-      <h5 class="mt-4">Order Items</h5>
-      <div id="product-list">
-        <div class="row product-row">
-          <div class="col-4">
-            <label class="form-label">Product</label>
-            <select name="product_id[]" id="product_0" class="form-select product-select" onchange="loadStocks(this)" required>
-              <option value="">-- Select --</option>
-              {% for p in products %}
-                <option value="{{ p.ProductID }}">{{ p.ProductName }} - {{ p.Name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="col-3">
-            <label class="form-label">Stock</label>
-            <select name="stock_id[]" id="stock_0" class="form-select stock-select" onchange="updatePrice(this)" required>
-              <option value="">-- Select Stock --</option>
-            </select>
-          </div>
-
-          <div class="col-2">
-            <label class="form-label">Qty</label>
-            <input type="number" name="quantity[]" id="qty_0" class="form-control qty-input" min="1" value="1" onchange="recalculateTotals()">
-          </div>
-
-          <div class="col-2">
-            <label class="form-label">Price</label>
-            <input type="text" id="price_0" class="form-control price-display" readonly>
-          </div>
-
-          <div class="col-1 d-flex align-items-end">
-            <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">X</button>
-          </div>
-        </div>
-      </div>
-
-      <button type="button" class="btn btn-secondary my-3" onclick="addRow()">+ Add Product</button>
-
-      <div class="row mb-3">
-        <div class="col-md-4 offset-md-8">
-          <label class="form-label">Total Amount</label>
-          <input type="text" id="total_amount" name="total_amount" class="form-control" readonly>
-        </div>
-      </div>
-
-      <button type="submit" class="btn btn-primary w-100">Submit Order</button>
-    </form>
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-4xl mx-auto mt-10">
+  <!-- Navigation Buttons -->
+  <div class="flex gap-4 mb-6">
+    <a href="{{ url_for('order_bp.add_order') }}" class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-white" style="background: linear-gradient(135deg, #145c5a 0%, #1dd84f 100%)">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+      </svg>
+      New Order
+    </a>
+    <a href="{{ url_for('order_bp.view_orders') }}" class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+      </svg>
+      View Orders
+    </a>
   </div>
 
-  <!-- Add Customer Modal -->
-  <div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <form id="addCustomerForm">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="addCustomerLabel">Add New Customer</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="new_customer_name" class="form-label">Name</label>
-              <input type="text" class="form-control" id="new_customer_name" required>
-            </div>
-            <div class="mb-3">
-              <label for="new_customer_phone" class="form-label">Phone</label>
-              <input type="text" class="form-control" id="new_customer_phone" required>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-success">Add</button>
-          </div>
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center gap-3 mb-2">
+      <div class="p-2 bg-green-100 rounded-lg">
+        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-gray-800">Place New Order</h1>
+    </div>
+    <p class="text-gray-600">Fill in order details and products to complete the sale</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="mb-4 p-4 rounded-lg bg-green-100 border border-green-300 text-green-800 shadow animate-bounce-in">
+          {{ message }}
         </div>
-      </form>
+        <script>
+          setTimeout(() => {
+            document.querySelectorAll('.bg-green-100').forEach(el => el.classList.add('hidden'));
+          }, 4000);
+        </script>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('order_bp.add_order') }}" class="bg-white p-8 rounded-2xl shadow-xl space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div>
+        <label for="date" class="font-semibold text-gray-700">Order Date</label>
+        <input type="date" name="date" id="date" class="form-input mt-1 w-full" required>
+      </div>
+
+      <div>
+        <label for="payment_type" class="font-semibold text-gray-700">Payment Type</label>
+        <select name="payment_type" class="form-select mt-1 w-full" required>
+          <option value="Cash" selected>Cash</option>
+          <option value="Card">Card</option>
+          <option value="Online">Online</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="customer_id" class="font-semibold text-gray-700">Customer</label>
+        <div class="flex gap-2">
+          <select name="customer_id" class="form-select w-full" required>
+            {% for c in customers %}
+              <option value="{{ c.CustomerID }}" {% if c.CustomerID == 7 %}selected{% endif %}>
+                {{ c.Name }} ({{ c.Phone }})
+              </option>
+            {% endfor %}
+          </select>
+          <button type="button" class="bg-blue-500 text-white px-2 py-1 rounded" onclick="openCustomerModal()">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t pt-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Order Items</h2>
+      <div id="product-list" class="space-y-4">
+        <!-- JS will clone this -->
+      </div>
+      <button type="button" class="mt-4 px-4 py-2 rounded bg-gray-100 hover:bg-gray-200" onclick="addRow()">+ Add Product</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+      <div class="md:col-start-3">
+        <label class="font-semibold text-gray-700">Total Amount</label>
+        <input type="text" id="total_amount" name="total_amount" class="form-input mt-1 w-full" readonly>
+      </div>
+    </div>
+
+    <!-- User Paid and Balance -->
+    <div class="row mb-3">
+      <div class="col-md-4 offset-md-8">
+        <label class="form-label">Amount Paid</label>
+        <input type="number" id="amount_paid" name="amount_paid" class="form-control" required oninput="updateBalance()">
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-4 offset-md-8">
+        <label class="form-label">Balance</label>
+        <input type="text" id="balance" name="balance" class="form-control" readonly>
+      </div>
+    </div>
+
+
+    <button type="submit" class="w-full py-3 mt-6 rounded-lg text-white font-semibold shadow-md transition-all duration-200" style="background: linear-gradient(135deg, #145c5a 0%, #1dd84f 100%)">Submit Order</button>
+  </form>
+</div>
+
+<!-- Customer Modal -->
+<div id="customerModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
+    <h2 class="text-lg font-bold mb-4">Add New Customer</h2>
+    <div class="space-y-3">
+      <input type="text" id="new_customer_name" placeholder="Customer Name" class="form-input w-full">
+      <input type="text" id="new_customer_phone" placeholder="Phone" class="form-input w-full">
+    </div>
+    <div class="flex justify-end gap-3 mt-5">
+      <button onclick="closeCustomerModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">Cancel</button>
+      <button onclick="submitCustomer()" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded">Add</button>
     </div>
   </div>
+</div>
 
-  <script>
-    function loadStocks(productSelect) {
-      const productId = productSelect.value;
-      const row = productSelect.closest('.product-row');
-      const stockSelect = row.querySelector('.stock-select');
-      const priceDisplay = row.querySelector('.price-display');
-
-      stockSelect.innerHTML = '<option>Loading...</option>';
-      priceDisplay.value = '';
-
-      fetch(`/orders/get_stocks/${productId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            stockSelect.innerHTML = '<option value="">-- Select --</option>';
-            data.stocks.forEach(s => {
-              stockSelect.innerHTML += `
-                <option value="${s.StockID}" data-price="${s.SellingPrice}">
-                  Stock#${s.StockID} | Qty: ${s.Quantity} | Rs. ${s.SellingPrice}
-                </option>`;
-            });
-          } else {
-            stockSelect.innerHTML = '<option>Error loading</option>';
-          }
-        })
-        .catch(() => {
-          stockSelect.innerHTML = '<option>Error loading</option>';
-        });
-    }
-
-    function updatePrice(stockSelect) {
-      const row = stockSelect.closest('.product-row');
-      const price = stockSelect.selectedOptions[0]?.getAttribute('data-price') || 0;
-      row.querySelector('.price-display').value = price;
-      recalculateTotals();
-    }
-
-    function recalculateTotals() {
-      let total = 0;
-      document.querySelectorAll('#product-list .product-row').forEach(row => {
-        const price = parseFloat(row.querySelector('.price-display').value) || 0;
-        const qty = parseInt(row.querySelector('.qty-input').value) || 0;
-        total += price * qty;
-      });
-      document.getElementById('total_amount').value = total.toFixed(2);
-    }
-
-    let rowCount = 1;
-
-    function addRow() {
-      const firstRow = document.querySelector('.product-row');
-      const newRow = firstRow.cloneNode(true);
-
-      newRow.querySelectorAll('select, input, label').forEach(el => {
-        if (el.tagName === 'LABEL') {
-          const field = el.htmlFor;
-          if (field) el.htmlFor = field.split('_')[0] + '_' + rowCount;
-        } else if (el.id) {
-          const base = el.id.split('_')[0];
-          el.id = base + '_' + rowCount;
-        }
-
-        if (el.classList.contains('product-select')) {
-          el.selectedIndex = 0;
-        } else if (el.classList.contains('stock-select')) {
-          el.innerHTML = '<option value="">-- Select Stock --</option>';
-        } else if (el.classList.contains('qty-input')) {
-          el.value = 1;
-        } else if (el.classList.contains('price-display')) {
-          el.value = '';
-        }
-      });
-
-      document.getElementById('product-list').appendChild(newRow);
-      rowCount++;
-    }
-
-    function removeRow(btn) {
-      const rows = document.querySelectorAll('.product-row');
-      if (rows.length > 1) {
-        btn.closest('.product-row').remove();
-        recalculateTotals();
+<script>
+function openCustomerModal() {
+  document.getElementById('customerModal').classList.remove('hidden');
+}
+function closeCustomerModal() {
+  document.getElementById('customerModal').classList.add('hidden');
+}
+function submitCustomer() {
+  const name = document.getElementById('new_customer_name').value;
+  const phone = document.getElementById('new_customer_phone').value;
+  fetch("{{ url_for('order_bp.add_customer_ajax') }}", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ name, phone })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        const select = document.querySelector("select[name='customer_id']");
+        select.innerHTML += `<option value="${data.customer_id}" selected>${data.name} (${phone})</option>`;
+        closeCustomerModal();
       } else {
-        alert("At least one product is required.");
+        alert("Error: " + data.message);
       }
-    }
-
-    document.addEventListener("DOMContentLoaded", function () {
-      const today = new Date();
-      const localDate = today.getFullYear() + '-' + 
-            String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-            String(today.getDate()).padStart(2, '0');
-      document.getElementById("date").value = localDate;
     });
+}
 
-    document.getElementById("addCustomerForm").addEventListener("submit", function (e) {
-      e.preventDefault();
+// Default row render on load
+function addRow() {
+  const container = document.getElementById('product-list');
+  const index = container.children.length;
+  const html = `
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+    <div>
+      <label class="text-sm text-gray-700">Product</label>
+      <select name="product_id[]" class="form-select w-full" onchange="loadStocks(this)" required>
+        <option value="">-- Select --</option>
+        {% for p in products %}
+        <option value="{{ p.ProductID }}">{{ p.ProductName }} - {{ p.Name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="text-sm text-gray-700">Stock</label>
+      <select name="stock_id[]" class="form-select w-full" onchange="updatePrice(this)" required>
+        <option value="">-- Select Stock --</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-sm text-gray-700">Qty</label>
+      <input type="number" name="quantity[]" value="1" class="form-input w-full" onchange="recalculateTotals()">
+    </div>
+    <div>
+      <label class="text-sm text-gray-700">Price</label>
+      <input type="text" class="form-input w-full price-display" readonly>
+    </div>
+    <button type="button" class="bg-red-500 text-white px-3 py-1 rounded" onclick="this.closest('div.grid').remove(); recalculateTotals()">X</button>
+  </div>`;
+  container.insertAdjacentHTML('beforeend', html);
+  recalculateTotals();
+}
 
-      const name = document.getElementById("new_customer_name").value;
-      const phone = document.getElementById("new_customer_phone").value;
+function loadStocks(productSelect) {
+  const row = productSelect.closest('div.grid');
+  const stockSelect = row.querySelector('select[name="stock_id[]"]');
+  const priceDisplay = row.querySelector('.price-display');
 
-      fetch("/orders/add_customer", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams({ name: name, phone: phone })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          const select = document.getElementById("customer_id");
-          const option = new Option(`${data.name} (${phone})`, data.customer_id, true, true);
-          select.add(option);
+  stockSelect.innerHTML = '<option>Loading...</option>';
+  priceDisplay.value = '';
 
-          const modal = bootstrap.Modal.getInstance(document.getElementById('addCustomerModal'));
-          modal.hide();
-          document.getElementById("addCustomerForm").reset();
-        } else {
-          alert("Error: " + data.message);
+  fetch(`/orders/get_stocks/${productSelect.value}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        const stocks = data.stocks;
+
+        // Case: No stock
+        if (stocks.length === 0) {
+          stockSelect.innerHTML = '<option value="">No stock available</option>';
+          return;
         }
-      })
-      .catch(err => alert("Request failed"));
-    });
-  </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+        // Case: Only one stock — auto select
+        if (stocks.length === 1) {
+          const s = stocks[0];
+          stockSelect.innerHTML = `
+            <option selected value="${s.StockID}" data-price="${s.SellingPrice}">
+              Stock#${s.StockID} | Qty: ${s.Quantity} | Rs. ${s.SellingPrice}
+            </option>`;
+          priceDisplay.value = s.SellingPrice;
+          recalculateTotals();
+        } else {
+          // Multiple options — require user to choose
+          stockSelect.innerHTML = '<option value="">-- Select --</option>';
+          stocks.forEach(s => {
+            stockSelect.innerHTML += `
+              <option value="${s.StockID}" data-price="${s.SellingPrice}">
+                Stock#${s.StockID} | Qty: ${s.Quantity} | Rs. ${s.SellingPrice}
+              </option>`;
+          });
+        }
+      } else {
+        stockSelect.innerHTML = '<option value="">Error loading</option>';
+      }
+    })
+    .catch(() => {
+      stockSelect.innerHTML = '<option value="">Error loading</option>';
+    });
+}
+
+function updatePrice(stockSelect) {
+  const row = stockSelect.closest('div.grid');
+  const price = stockSelect.selectedOptions[0]?.getAttribute('data-price') || 0;
+  row.querySelector('.price-display').value = price;
+  recalculateTotals();
+}
+
+function updateBalance() {
+  const total = parseFloat(document.getElementById("total_amount").value) || 0;
+  const paid = parseFloat(document.getElementById("amount_paid").value) || 0;
+  const balance = paid - total;
+  document.getElementById("balance").value = balance.toFixed(2);
+}
+
+
+function recalculateTotals() {
+  let total = 0;
+  document.querySelectorAll('#product-list .grid').forEach(row => {
+    const price = parseFloat(row.querySelector('.price-display').value) || 0;
+    const qty = parseInt(row.querySelector('input[name="quantity[]"]').value) || 0;
+    total += price * qty;
+  });
+  document.getElementById('total_amount').value = total.toFixed(2);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const today = new Date();
+  const tzOffset = today.getTimezoneOffset() * 60000; // Offset in milliseconds
+  const localISODate = new Date(today - tzOffset).toISOString().slice(0, 10);
+  document.getElementById("date").value = localISODate;
+});
+
+</script>
+{% endblock %}
