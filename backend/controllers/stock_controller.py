@@ -57,36 +57,77 @@ def view_stock():
     return render_template('view_stock.html', stocks=updated_stocks, active_page='stock')
 
 
+@stock_bp.route('/add', methods=['GET'])
+@login_required
+def add_stock():
+    products = db.session.execute(text("SELECT ProductID, ProductName FROM product")).fetchall()
+    suppliers = db.session.execute(text("SELECT SupplierID, Name FROM supplier")).fetchall()
+    return render_template('add_stock.html', products=products, suppliers=suppliers, active_page='stock')
+
+
 # ------------------ ADD STOCK ------------------
 @stock_bp.route('/add', methods=['POST'])
 @login_required
-def add_stock():
-    try:
-        data = {
-            'stock_id': request.form['stock_id'],
-            'product_id': request.form['product_id'],
-            'exp_date': request.form['exp_date'],
-            'mfg_date': request.form['mfg_date'],
-            'purchase_price': request.form['purchase_price'],
-            'selling_price': request.form['selling_price'],
-            'quantity': request.form['quantity'],
-            'supplier_id': request.form['supplier_id']
-        }
+def add_stock_post():
+    from datetime import date
+    form = request.form
 
-        db.session.execute(text("""
-            INSERT INTO stock (StockID, ProductID, ExpDate, MfgDate,
-                               PurchasePrice, SellingPrice, Quantity, SupplierID)
-            VALUES (:stock_id, :product_id, :exp_date, :mfg_date,
-                    :purchase_price, :selling_price, :quantity, :supplier_id)
-        """), data)
+    supplier_id = form.get('supplier_id')
+    total_items = int(form.get('total_items'))
+
+    try:
+        # Generate a new StockID by getting max and adding 1 (or use sequence if DB supports)
+        stock_id_result = db.session.execute(text("SELECT COALESCE(MAX(StockID), 0) + 1 AS NewStockID FROM stock"))
+        stock_id = stock_id_result.fetchone().NewStockID
+
+        for i in range(1, total_items + 1):
+            product_id = form.get(f'product_id_{i}')
+            exp_date = form.get(f'exp_date_{i}')
+            mfg_date = form.get(f'mfg_date_{i}')
+            purchase_price = form.get(f'purchase_price_{i}')
+            selling_price = form.get(f'selling_price_{i}')
+            quantity = int(form.get(f'quantity_{i}'))
+
+            # Determine status
+            status = 'Active'
+            if exp_date and date.fromisoformat(exp_date) < date.today():
+                status = 'Expired'
+            elif quantity == 0:
+                status = 'OutOfStock'
+
+            db.session.execute(text("""
+                INSERT INTO stock (
+                    StockID, ProductID, ExpDate, MfgDate,
+                    PurchasePrice, SellingPrice, Quantity,
+                    SupplierID, Status
+                )
+                VALUES (
+                    :stock_id, :product_id, :exp_date, :mfg_date,
+                    :purchase_price, :selling_price, :quantity,
+                    :supplier_id, :status
+                )
+            """), {
+                'stock_id': stock_id,
+                'product_id': product_id,
+                'exp_date': exp_date,
+                'mfg_date': mfg_date,
+                'purchase_price': purchase_price,
+                'selling_price': selling_price,
+                'quantity': quantity,
+                'supplier_id': supplier_id,
+                'status': status
+            })
 
         db.session.commit()
-        flash("Stock added successfully!", "success")
+        flash('Stock items added successfully!', 'success')
+        return redirect(url_for('stock_bp.view_stock'))
+
     except Exception as e:
         db.session.rollback()
-        flash(f"Error adding stock: {e}", "danger")
-    
-    return redirect(url_for('stock_bp.view_stock'))
+        flash(f'Error adding stock: {e}', 'danger')
+        return redirect(url_for('stock_bp.add_stock'))
+
+
 
 # ------------------ UPDATE STOCK ------------------
 @stock_bp.route('/update', methods=['POST'])

@@ -27,6 +27,8 @@ def create_app():
     from controllers.auth_controller import auth_bp  # <- ADD THIS
     from controllers.order_controller import order_bp
     from controllers.stock_controller import stock_bp
+    from controllers.returnproduct_controller import returnproduct_bp
+
 
     app.register_blueprint(test_bp)
     app.register_blueprint(brand_bp)
@@ -35,6 +37,7 @@ def create_app():
     app.register_blueprint(auth_bp)  # <- ADD THIS
     app.register_blueprint(order_bp)
     app.register_blueprint(stock_bp)
+    app.register_blueprint(returnproduct_bp)
 
     return app
 

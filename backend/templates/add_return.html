@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mx-auto px-4 py-6">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} mb-4" id="flash-alert">
+                    {{ message }}
+                    <button type="button" class="float-right" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Order ID Form -->
+    {% if not products %}
+        <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-bold mb-4">Enter Order ID to Start Return</h2>
+            <form method="POST" action="{{ url_for('returnproduct_bp.add_return') }}">
+                <div class="mb-4">
+                    <label for="order_id" class="block text-gray-700 font-medium mb-1">Order ID</label>
+                    <input type="number" id="order_id" name="order_id" class="w-full border rounded px-3 py-2" required>
+                </div>
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                    Load Products
+                </button>
+            </form>
+        </div>
+
+    {% else %}
+        <!-- Return Product Form -->
+        <form method="POST" action="{{ url_for('returnproduct_bp.submit_return') }}">
+            <input type="hidden" name="order_id" value="{{ order_id }}">
+            <h2 class="text-xl font-bold mb-4">Products for Order #{{ order_id }}</h2>
+
+            <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+                <table class="min-w-full table-auto">
+                    <thead class="bg-gray-200 text-gray-700 font-semibold">
+                        <tr>
+                            <th class="px-4 py-2">Return</th>
+                            <th class="px-4 py-2">Product Name</th>
+                            <th class="px-4 py-2">Product ID</th>
+                            <th class="px-4 py-2">Stock ID</th>
+                            <th class="px-4 py-2">Quantity</th>
+                            <th class="px-4 py-2">Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in products %}
+                        <tr class="border-t">
+                            <td class="px-4 py-2 text-center">
+                                <input type="checkbox" name="return_items" value="{{ item.ProductID }}-{{ item.StockID }}">
+                            </td>
+                            <td class="px-4 py-2">{{ item.ProductName }}</td>
+                            <td class="px-4 py-2">{{ item.ProductID }}</td>
+                            <td class="px-4 py-2">{{ item.StockID }}</td>
+                            <td class="px-4 py-2">
+                                <input type="number" name="qty_{{ item.ProductID }}_{{ item.StockID }}" value="{{ item.Quantity }}" min="1" max="{{ item.Quantity }}" class="w-20 border rounded px-2 py-1">
+                            </td>
+                            <td class="px-4 py-2">
+                                <select name="reason_{{ item.ProductID }}_{{ item.StockID }}" class="border rounded px-2 py-1">
+                                    <option value="Expired">Expired</option>
+                                    <option value="Changed mind">Changed mind</option>
+                                    <option value="Defective item">Defective item</option>
+                                </select>
+                            </td>
+
+                            <!-- Hidden field for CustomerID -->
+                            <input type="hidden" name="cust_{{ item.ProductID }}_{{ item.StockID }}" value="{{ item.CustomerID }}">
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-6">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+                    Submit Return
+                </button>
+                <a href="{{ url_for('returnproduct_bp.add_return') }}" class="ml-4 text-gray-600 hover:underline">Cancel</a>
+            </div>
+        </form>
+    {% endif %}
+</div>
+
+<!-- Flash Auto-dismiss -->
+<script>
+    setTimeout(function () {
+        const alert = document.getElementById('flash-alert');
+        if (alert) alert.remove();
+    }, 4000);
+</script>
+
+{% endblock %}

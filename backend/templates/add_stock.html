@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-5xl mx-auto mt-10 bg-white p-6 rounded shadow">
+    <div class="flex gap-4 mb-6">
+
+
+    <a href="{{ url_for('stock_bp.add_stock') }}" class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors text-white" style="background: linear-gradient(135deg, #145c5a 0%, #1dd84f 100%)">
+        <i class="fas fa-plus w-5 h-5"></i>
+        Add Stock
+    </a>    
+    <a href="{{ url_for('stock_bp.view_stock') }}" class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
+        <i class="fas fa-clipboard-list w-5 h-5"></i>
+        View Stock
+    </a>
+    
+
+  </div>
+  <h2 class="text-2xl font-bold mb-6 text-gray-800">Add Stock Items</h2>
+
+  <form method="POST" id="stockForm">
+    <!-- Supplier Dropdown -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium">Supplier</label>
+      <select name="supplier_id" class="w-full border rounded px-3 py-2" required>
+        <option value="">-- Select Supplier --</option>
+        {% for supplier in suppliers %}
+          <option value="{{ supplier.SupplierID }}">{{ supplier.Name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="productRows">
+      <!-- Product rows will be injected here -->
+    </div>
+
+    <div class="flex justify-between mt-6">
+      <button type="button" onclick="addProductRow()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        + Add Product
+      </button>
+      <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+        Submit
+      </button>
+    </div>
+
+    <input type="hidden" name="total_items" id="totalItems" value="0">
+  </form>
+</div>
+
+<script>
+  let rowCount = 0;
+
+  function addProductRow() {
+    rowCount++;
+    document.getElementById('totalItems').value = rowCount;
+
+    const row = document.createElement('div');
+    row.className = "border p-4 mb-4 rounded bg-gray-50";
+    row.id = `product_row_${rowCount}`;
+
+    row.innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div>
+          <label class="text-sm font-medium">Product</label>
+          <select name="product_id_${rowCount}" class="w-full border rounded px-3 py-2" required>
+            <option value="">-- Select Product --</option>
+            {% for product in products %}
+              <option value="{{ product.ProductID }}">{{ product.ProductName }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium">MFG Date</label>
+          <input type="date" name="mfg_date_${rowCount}" class="w-full border rounded px-3 py-2" required>
+        </div>
+        <div>
+          <label class="text-sm font-medium">EXP Date</label>
+          <input type="date" name="exp_date_${rowCount}" class="w-full border rounded px-3 py-2" required>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Quantity</label>
+          <input type="number" name="quantity_${rowCount}" class="w-full border rounded px-3 py-2" required>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+        <div>
+          <label class="text-sm font-medium">Purchase Price</label>
+          <input type="number" step="0.01" name="purchase_price_${rowCount}" class="w-full border rounded px-3 py-2" required>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Selling Price</label>
+          <input type="number" step="0.01" name="selling_price_${rowCount}" class="w-full border rounded px-3 py-2" required>
+        </div>
+        <div>
+          <button type="button" onclick="removeProductRow(${rowCount})" class="text-red-500 hover:text-red-700 mt-6">
+            <i class="fas fa-trash-alt"></i> Remove
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('productRows').appendChild(row);
+  }
+
+  function removeProductRow(id) {
+    const row = document.getElementById(`product_row_${id}`);
+    if (row) row.remove();
+  }
+
+  // Initialize with one row
+  window.onload = function() {
+    addProductRow();
+  };
+</script>
+{% endblock %}
