@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash , session
 from sqlalchemy import text
 from app_init import db
 from datetime import datetime
@@ -18,7 +18,8 @@ def view_returns():
             c.Name AS CustomerName,
             r.ProductID, 
             p.ProductName,
-            r.StockID
+            r.StockID,
+            r.OrderID                          
         FROM returnproduct r
         JOIN customer c ON r.CustomerID = c.CustomerID
         JOIN product p ON r.ProductID = p.ProductID
@@ -40,13 +41,16 @@ def add_return():
             return redirect(url_for('returnproduct_bp.add_return'))
 
         # Fetch products from pack table related to the order
+        # Updated pack query to include SellingPrice
         products = db.session.execute(text("""
-            SELECT pk.ProductID, pk.StockID, pk.Quantity, p.ProductName, co.CustomerID
+            SELECT pk.ProductID, pk.StockID, pk.Quantity, p.ProductName, co.CustomerID, s.SellingPrice
             FROM pack pk
             JOIN product p ON pk.ProductID = p.ProductID
             JOIN customerorder co ON pk.OrderID = co.OrderID
+            JOIN stock s ON pk.StockID = s.StockID AND pk.ProductID = s.ProductID
             WHERE pk.OrderID = :order_id
         """), {'order_id': order_id}).fetchall()
+
 
         if not products:
             flash("No products found for this order.", "warning")
@@ -60,82 +64,85 @@ def add_return():
 @returnproduct_bp.route('/submit', methods=['POST'])
 def submit_return():
     selected = request.form.getlist('return_items')
+    reasons = request.form
+    order_id = request.form.get('order_id')  # Add this line
 
     if not selected:
-        flash("You must select at least one product to return.", "danger")
+        flash("Please select at least one product to return.", "danger")
         return redirect(url_for('returnproduct_bp.add_return'))
 
     for item in selected:
         product_id, stock_id = item.split('-')
-        quantity_str = request.form.get(f'qty_{product_id}_{stock_id}')
+        quantity = request.form.get(f'qty_{product_id}_{stock_id}')
         reason = request.form.get(f'reason_{product_id}_{stock_id}')
         customer_id = request.form.get(f'cust_{product_id}_{stock_id}')
 
-        # Quantity validation
-        try:
-            quantity = int(quantity_str)
-            if quantity <= 0:
-                flash("Return quantity must be greater than 0.", "danger")
-                return redirect(url_for('returnproduct_bp.add_return'))
-        except ValueError:
-            flash("Invalid quantity entered.", "danger")
-            return redirect(url_for('returnproduct_bp.add_return'))
-
-        # Get original pack quantity
-        pack = db.session.execute(text("""
-            SELECT Quantity FROM pack
-            WHERE ProductID = :pid AND StockID = :sid
-            LIMIT 1
+        # Get price from database for safety
+        price_row = db.session.execute(text("""
+            SELECT SellingPrice FROM stock WHERE ProductID = :pid AND StockID = :sid
         """), {'pid': product_id, 'sid': stock_id}).fetchone()
+    
+        quantity = int(request.form.get(f'qty_{product_id}_{stock_id}'))
+        price = float(request.form.get(f'price_{product_id}_{stock_id}'))
+        subtotal = quantity * price
+        #total_amount += subtotal
 
-        if not pack:
-            flash("Original pack record not found for validation.", "danger")
+        # Optional: Validate quantity not exceeding originally purchased
+        original_qty = db.session.execute(text("""
+            SELECT Quantity FROM pack
+            WHERE ProductID = :pid AND StockID = :sid AND OrderID = :oid
+        """), {'pid': product_id, 'sid': stock_id, 'oid': order_id}).scalar()
+
+        if not original_qty or int(quantity) > original_qty:
+            flash(f"Cannot return more than originally purchased for product ID {product_id}.", "danger")
             return redirect(url_for('returnproduct_bp.add_return'))
 
-        pack_qty = pack[0]
-
-        if quantity > pack_qty:
-            flash(f"Cannot return more than {pack_qty} for product ID {product_id}.", "danger")
-            return redirect(url_for('returnproduct_bp.add_return'))
-
-        # 1. Insert into returnproduct
         db.session.execute(text("""
-            INSERT INTO returnproduct (Date, Quantity, Reason, CustomerID, ProductID, StockID)
-            VALUES (:date, :qty, :reason, :cust_id, :pid, :sid)
+            INSERT INTO returnproduct (Date, Quantity, Reason, CustomerID, ProductID, StockID, OrderID)
+            VALUES (:date, :qty, :reason, :cust_id, :pid, :sid, :oid)
         """), {
             'date': datetime.today().date(),
             'qty': quantity,
             'reason': reason,
             'cust_id': customer_id,
             'pid': product_id,
-            'sid': stock_id
+            'sid': stock_id,
+            'oid': order_id
         })
 
-        # 2. Restock if reason is "Change of Mind"
-        if reason.strip().lower() == "change of mind":
+        crid = db.session.execute(text("SELECT LAST_INSERT_ID()")).scalar()
+
+        # Insert into returninvoice
+        db.session.execute(text("""
+            INSERT INTO returninvoice (CRID, CustomerID, EmployeeID, Date, Amount)
+            VALUES (:crid, :cust_id, :emp_id, :date, :amount)
+        """), {
+            'crid': crid,
+            'cust_id': customer_id,
+            'emp_id': session.get('employee_id'),  # Assume employee ID is stored in session
+            'date': datetime.today().date(),
+            'amount': subtotal  # You must calculate this
+        })
+
+        # If reason is "Changed mind" → restock it
+        if reason in ["Changed mind", "Expired"]:
             db.session.execute(text("""
                 UPDATE stock
                 SET Quantity = Quantity + :qty
-                WHERE StockID = :sid AND ProductID = :pid
-            """), {
-                'qty': quantity,
-                'sid': stock_id,
-                'pid': product_id
-            })
-
-        # 3. Update or delete from pack
-        if quantity == pack_qty:
-            db.session.execute(text("""
-                DELETE FROM pack
-                WHERE ProductID = :pid AND StockID = :sid
-                LIMIT 1
-            """), {'pid': product_id, 'sid': stock_id})
-        else:
-            db.session.execute(text("""
-                UPDATE pack
-                SET Quantity = Quantity - :qty
                 WHERE ProductID = :pid AND StockID = :sid
             """), {'qty': quantity, 'pid': product_id, 'sid': stock_id})
+
+        elif reason == "Defective item":
+         # Increase damaged count
+            db.session.execute(text("""
+                UPDATE stock
+                SET Damaged = Damaged + :qty
+                WHERE ProductID = :pid AND StockID = :sid
+            """), {'qty': quantity, 'pid': product_id, 'sid': stock_id})
+
+
+        # If full quantity returned, delete from `pack`
+
 
     db.session.commit()
     flash("Return submitted successfully!", "success")

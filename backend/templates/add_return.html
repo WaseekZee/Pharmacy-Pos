@@ -45,36 +45,46 @@
                             <th class="px-4 py-2">Product ID</th>
                             <th class="px-4 py-2">Stock ID</th>
                             <th class="px-4 py-2">Quantity</th>
+                            <th class="px-4 py-2">Unit Price</th>
                             <th class="px-4 py-2">Reason</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in products %}
-                        <tr class="border-t">
-                            <td class="px-4 py-2 text-center">
-                                <input type="checkbox" name="return_items" value="{{ item.ProductID }}-{{ item.StockID }}">
+                        {% for p in products%}
+                        <tr>
+                            <td class="text-center"><input type="checkbox" name="return_items" value="{{ p.ProductID }}-{{ p.StockID }}" onchange="calculateTotal()"></td>
+                            <td>{{ p.ProductName }}</td>
+                            <td>{{ p.ProductID }}</td>
+                            <td>{{ p.StockID }}</td>
+                            <td>
+                                <input type="number" name="qty_{{ p.ProductID }}_{{ p.StockID }}" id="qty_{{ p.ProductID }}-{{ p.StockID }}" min="1" max="{{ p.Quantity }}" value="1" class="w-20 border rounded px-2 py-1" onchange="calculateTotal()">
+                                <input type="hidden" name="cust_{{ p.ProductID }}_{{ p.StockID }}" value="{{ p.CustomerID }}">
                             </td>
-                            <td class="px-4 py-2">{{ item.ProductName }}</td>
-                            <td class="px-4 py-2">{{ item.ProductID }}</td>
-                            <td class="px-4 py-2">{{ item.StockID }}</td>
-                            <td class="px-4 py-2">
-                                <input type="number" name="qty_{{ item.ProductID }}_{{ item.StockID }}" value="{{ item.Quantity }}" min="1" max="{{ item.Quantity }}" class="w-20 border rounded px-2 py-1">
+                            <td>
+                                {{ p.SellingPrice }}
+                                <input type="hidden" id="price_{{ p.ProductID }}-{{ p.StockID }}" value="{{ p.SellingPrice }}">
                             </td>
-                            <td class="px-4 py-2">
-                                <select name="reason_{{ item.ProductID }}_{{ item.StockID }}" class="border rounded px-2 py-1">
+                            <td>
+                                <select name="reason_{{ p.ProductID }}_{{ p.StockID }}" class="border rounded px-2 py-1">
                                     <option value="Expired">Expired</option>
                                     <option value="Changed mind">Changed mind</option>
-                                    <option value="Defective item">Defective item</option>
+                                    <option value="Defective">Defective</option>
                                 </select>
                             </td>
-
-                            <!-- Hidden field for CustomerID -->
-                            <input type="hidden" name="cust_{{ item.ProductID }}_{{ item.StockID }}" value="{{ item.CustomerID }}">
                         </tr>
+                        <input type="hidden" name="price_{{ p.ProductID }}_{{ p.StockID }}" value="{{ p.SellingPrice }}">
                         {% endfor %}
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" class="text-right px-4 py-2 font-semibold">Total Amount:</td>
+                            <td class="px-4 py-2 font-bold"><span id="total_amount">0.00</span></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
+            
+
 
             <div class="mt-6">
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
@@ -87,6 +97,19 @@
 </div>
 
 <!-- Flash Auto-dismiss -->
+<script>
+function calculateTotal() {
+    let total = 0;
+    document.querySelectorAll('input[name="return_items"]:checked').forEach(item => {
+        const key = item.value;
+        const qty = parseInt(document.getElementById(`qty_${key}`).value) || 0;
+        const price = parseFloat(document.getElementById(`price_${key}`).value) || 0;
+        total += qty * price;
+    });
+    document.getElementById("total_amount").innerText = total.toFixed(2);
+}
+</script>
+
 <script>
     setTimeout(function () {
         const alert = document.getElementById('flash-alert');
