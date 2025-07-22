@@ -204,16 +204,16 @@
                     Return
                 </a>
 
-                <a href="#"
+                <a href="{{ url_for('supplier_bp.view_suppliers')}}"
                    class="flex items-center px-4 py-3 {{ 'bg-white/30 text-white' if active_page == 'supplier' else 'text-blue-200' }} hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
                     <i class="fas fa-users w-5 mr-3"></i>
                     Supplier
                 </a>
 
-                <a href="#"
-                   class="flex items-center px-4 py-3 {{ 'bg-white/30 text-white' if active_page == 'reports' else 'text-blue-200' }} hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
-                    <i class="fas fa-chart-bar w-5 mr-3"></i>
-                    Reports
+                <a href="{{ url_for('employee_bp.view_employees')}}"
+                   class="flex items-center px-4 py-3 {{ 'bg-white/30 text-white' if active_page == 'employee' else 'text-blue-200' }} hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+                    <i class="fas fa-users w-5 mr-3"></i>
+                    Employee
                 </a>
             </nav>
         </div>

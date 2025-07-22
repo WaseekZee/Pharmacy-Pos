@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.OrderID }} Details{% endblock %}
+{% block page_title %}Invoice for Order #{{ order.OrderID }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-8 mt-6">
+
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800">Order #{{ order.OrderID }}</h2>
+      <p class="text-sm text-gray-600">Date: {{ order.Date }}</p>
+    </div>
+    <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+      <i class="fas fa-print mr-1"></i> Print Invoice
+    </button>
+  </div>
+
+  <!-- Order Summary -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-sm">
+    <div><strong>Customer:</strong> {{ order.CustomerName }}</div>
+    <div><strong>Handled By:</strong> {{ order.EmployeeName }}</div>
+    <div><strong>Payment Type:</strong> {{ order.PaymentType }}</div>
+    <div><strong>Total Amount:</strong> Rs. {{ "%.2f"|format(order.TotalAmount) }}</div>
+    <div><strong>Paid:</strong> Rs. {{ "%.2f"|format(order.AmountPaid or 0) }}</div>
+    <div><strong>Balance:</strong> Rs. {{ "%.2f"|format(order.Balance or 0) }}</div>
+  </div>
+
+  <!-- Products -->
+  <h3 class="text-lg font-semibold mb-2">Products</h3>
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm text-left border">
+      <thead class="bg-gray-100 text-gray-600 uppercase">
+        <tr>
+          <th class="px-4 py-2">Product</th>
+          <th class="px-4 py-2">Quantity</th>
+          <th class="px-4 py-2">Stock ID</th>
+          <th class="px-4 py-2">Date Packed</th>
+        </tr>
+      </thead>
+      <tbody class="text-gray-800">
+        {% for item in pack_items %}
+        <tr class="border-t">
+          <td class="px-4 py-2">{{ item.ProductName }}</td>
+          <td class="px-4 py-2">{{ item.Quantity }}</td>
+          <td class="px-4 py-2">{{ item.StockID }}</td>
+          <td class="px-4 py-2">{{ item.Date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

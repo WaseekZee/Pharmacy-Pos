@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}View Suppliers{% endblock %}
+
+{% block page_title %}Supplier Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Tab Navigation -->
+    <div class="mb-8">
+        <div class="flex space-x-1 bg-white p-2 rounded-full shadow-lg inline-flex">
+            <a href="{{ url_for('supplier_bp.add_supplier') }}">
+                <button class="btn-tab">
+                    <i class="fas fa-plus-circle"></i>
+                    Add Supplier
+                </button>
+            </a>
+            <button class="btn-tab active">
+                <i class="fas fa-list"></i>
+                View Suppliers
+            </button>
+        </div>
+    </div>
+
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                <i class="fas fa-users text-white text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-2xl font-bold text-gray-800">All Suppliers</h3>
+                <p class="text-gray-500">Manage your supplier database</p>
+            </div>
+        </div>
+        
+        <a href="{{ url_for('supplier_bp.add_supplier') }}">
+            <button class="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <i class="fas fa-plus-circle mr-2"></i>
+                Add New Supplier
+            </button>
+        </a>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="card-custom p-6 mb-6">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <div class="relative">
+                    <input type="text" 
+                           id="searchInput"
+                           placeholder="Search suppliers by name, phone, or address..."
+                           class="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-all duration-200 bg-gray-50 focus:bg-white">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200">
+                    <i class="fas fa-filter mr-2"></i>
+                    Filter
+                </button>
+                <button class="px-4 py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl hover:from-green-600 hover:to-teal-700 transition-all duration-200">
+                    <i class="fas fa-download mr-2"></i>
+                    Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suppliers Table -->
+    <div class="card-custom overflow-hidden hover-lift">
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            <i class="fas fa-building text-green-600 mr-2"></i>
+                            Supplier Name
+                        </th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            <i class="fas fa-phone text-blue-600 mr-2"></i>
+                            Telephone
+                        </th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            <i class="fas fa-credit-card text-purple-600 mr-2"></i>
+                            Bank Account
+                        </th>
+                        <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            <i class="fas fa-map-marker-alt text-red-600 mr-2"></i>
+                            Address
+                        </th>
+                        <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                            <i class="fas fa-cogs text-gray-600 mr-2"></i>
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200" id="suppliersTableBody">
+                    {% for supplier in suppliers %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold text-sm">{{ supplier.Name[:2].upper() }}</span>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="font-semibold text-gray-800">{{ supplier.Name }}</p>
+                                    <p class="text-sm text-gray-500">Supplier ID: #{{ supplier.SupplierID }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-phone text-blue-500 mr-2"></i>
+                                <span class="text-gray-800 font-medium">{{ supplier.Telephone }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-university text-purple-500 mr-2"></i>
+                                <span class="text-gray-800 font-mono">{{ supplier.BankAccount }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-start">
+                                <i class="fas fa-map-marker-alt text-red-500 mr-2 mt-1"></i>
+                                <span class="text-gray-700 text-sm">{{ supplier.Address or '—' }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex justify-center space-x-2">
+                                <!-- Edit Button -->
+                                <button
+                                    class="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+                                    data-id="{{ supplier.SupplierID }}"
+                                    data-name="{{ supplier.Name }}"
+                                    data-phone="{{ supplier.Telephone }}"
+                                    data-bank="{{ supplier.BankAccount }}"
+                                    data-address="{{ supplier.Address or '' }}"
+                                    onclick="openEditModal(this)">
+                                    <i class="fas fa-edit mr-1"></i>Edit
+                                </button>
+
+                                <!-- Delete Form -->
+                                <form action="{{ url_for('supplier_bp.delete_supplier', supplier_id=supplier.SupplierID) }}"
+                                      method="POST" class="inline">
+                                    <button type="submit"
+                                            class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+                                            onclick="return confirm('Are you sure you want to delete this supplier?')">
+                                        <i class="fas fa-trash-alt mr-1"></i>Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Empty State -->
+            {% if not suppliers %}
+            <div class="text-center py-12">
+                <div class="w-24 h-24 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-users text-gray-500 text-3xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">No Suppliers Found</h3>
+                <p class="text-gray-500 mb-6">You haven't added any suppliers yet. Get started by adding your first supplier.</p>
+                <a href="{{ url_for('supplier_bp.add_supplier') }}">
+                    <button class="bg-gradient-to-r from-green-600 to-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-green-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-105">
+                        <i class="fas fa-plus-circle mr-2"></i>Add Your First Supplier
+                    </button>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Supplier Modal -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all duration-300 scale-95">
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-6 rounded-t-2xl">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mr-3">
+                        <i class="fas fa-edit text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold">Edit Supplier</h3>
+                        <p class="text-blue-100 text-sm">Update supplier information</p>
+                    </div>
+                </div>
+                <button onclick="closeEditModal()" class="text-white hover:text-red-200 transition-colors p-2 hover:bg-white/10 rounded-lg">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-8">
+            <form id="editForm" method="POST" class="space-y-6">
+                <input type="hidden" id="editSupplierID">
+
+                <!-- Supplier Name -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-building text-green-600 mr-2"></i>
+                        Supplier Name
+                    </label>
+                    <input name="editSupplierName" id="editSupplierName" type="text" required
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-0 transition-all duration-200 bg-gray-50 focus:bg-white">
+                </div>
+
+                <!-- Telephone -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-phone text-blue-600 mr-2"></i>
+                        Telephone
+                    </label>
+                    <input name="editTelephone" id="editTelephone" type="text" required
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-all duration-200 bg-gray-50 focus:bg-white">
+                </div>
+
+                <!-- Bank Account -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-credit-card text-purple-600 mr-2"></i>
+                        Bank Account
+                    </label>
+                    <input name="editBankAccount" id="editBankAccount" type="text" required
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-0 transition-all duration-200 bg-gray-50 focus:bg-white">
+                </div>
+
+                <!-- Address -->
+                <div class="group">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-map-marker-alt text-red-600 mr-2"></i>
+                        Address
+                    </label>
+                    <textarea name="editAddress" id="editAddress" rows="3"
+                              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-0 transition-all duration-200 bg-gray-50 focus:bg-white resize-none"></textarea>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
+                    <button type="button" onclick="closeEditModal()"
+                            class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const tableRows = document.querySelectorAll('#suppliersTableBody tr');
+    
+    tableRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Modal functions
+function openEditModal(button) {
+    const id = button.dataset.id;
+    const name = button.dataset.name;
+    const phone = button.dataset.phone;
+    const bank = button.dataset.bank;
+    const address = button.dataset.address;
+
+    document.getElementById('editSupplierID').value = id;
+    document.getElementById('editSupplierName').value = name;
+    document.getElementById('editTelephone').value = phone;
+    document.getElementById('editBankAccount').value = bank;
+    document.getElementById('editAddress').value = address;
+
+    // Set the form action
+    document.getElementById('editForm').action = `/suppliers/edit/${id}`;
+
+    const modal = document.getElementById('editModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Add animation
+    setTimeout(() => {
+        modal.querySelector('.bg-white').classList.remove('scale-95');
+        modal.querySelector('.bg-white').classList.add('scale-100');
+    }, 10);
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    const modalContent = modal.querySelector('.bg-white');
+    
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 200);
+}
+
+// Close modal when clicking outside
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditModal();
+    }
+});
+
+// Input focus animations
+document.querySelectorAll('#editModal input, #editModal textarea').forEach(input => {
+    input.addEventListener('focus', function() {
+        this.parentElement.classList.add('transform', 'scale-105');
+    });
+    
+    input.addEventListener('blur', function() {
+        this.parentElement.classList.remove('transform', 'scale-105');
+    });
+});
+
+// Tab functionality
+document.querySelectorAll('.btn-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.btn-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+</script>
+
+{% endblock %}

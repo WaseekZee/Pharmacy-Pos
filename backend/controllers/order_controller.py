@@ -206,4 +206,27 @@ def get_stocks(product_id):
         return {"success": True, "stocks": stocks}
     except Exception as e:
         return {"success": False, "error": str(e)}
+    
+
+@order_bp.route('/details/<int:order_id>')
+@login_required
+def view_order_details(order_id):
+    order = db.session.execute(text("""
+        SELECT o.OrderID, o.Date, o.TotalAmount, o.AmountPaid, o.Balance, o.PaymentType,
+               c.Name AS CustomerName, e.Name AS EmployeeName
+        FROM customerorder o
+        JOIN customer c ON o.CustomerID = c.CustomerID
+        JOIN employee e ON o.EmployeeID = e.EmployeeID
+        WHERE o.OrderID = :order_id
+    """), {'order_id': order_id}).fetchone()
+
+    pack_items = db.session.execute(text("""
+        SELECT p.ProductID, pr.ProductName, p.Quantity, p.Date, p.StockID
+        FROM pack p
+        JOIN product pr ON p.ProductID = pr.ProductID
+        WHERE p.OrderID = :order_id
+    """), {'order_id': order_id}).fetchall()
+
+    return render_template('vieworderdetails.html', order=order, pack_items=pack_items , active_page='billing')
+
 

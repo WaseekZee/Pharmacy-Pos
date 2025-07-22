@@ -104,6 +104,12 @@
               {% else %}
               <span class="text-gray-400 text-sm">No action needed</span>
               {% endif %}
+
+              <a href="{{ url_for('order_bp.view_order_details', order_id=o.OrderID) }}"
+                class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors">
+                <i class="fas fa-eye mr-1"></i> View Details
+              </a>
+
             </td>
           </tr>
           {% endfor %}
