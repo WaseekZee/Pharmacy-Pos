@@ -45,7 +45,7 @@
     {% endif %}
   {% endwith %}
 
-  <form method="POST" action="{{ url_for('order_bp.add_order') }}" class="bg-white p-8 rounded-2xl shadow-xl space-y-6">
+  <form method="POST" action="{{ url_for('order_bp.add_order') }}" class="bg-white p-8 rounded-2xl shadow-xl space-y-6" id="orderForm">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div>
         <label for="date" class="font-semibold text-gray-700">Order Date</label>
@@ -92,20 +92,30 @@
     </div>
 
     <!-- User Paid and Balance -->
-    <div class="row mb-3">
-      <div class="col-md-4 offset-md-8">
-        <label class="form-label">Amount Paid</label>
-        <input type="number" id="amount_paid" name="amount_paid" class="form-control" required oninput="updateBalance()">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="md:col-start-2">
+        <label class="font-semibold text-gray-700">Amount Paid</label>
+        <input type="number" id="amount_paid" name="amount_paid" class="form-input mt-1 w-full" required oninput="updateBalance()">
+      </div>
+      <div>
+        <label class="font-semibold text-gray-700">Balance</label>
+        <input type="text" id="balance" name="balance" class="form-input mt-1 w-full" readonly>
       </div>
     </div>
 
-    <div class="row mb-3">
-      <div class="col-md-4 offset-md-8">
-        <label class="form-label">Balance</label>
-        <input type="text" id="balance" name="balance" class="form-control" readonly>
+    <!-- Print Invoice Checkbox -->
+    <div class="border-t pt-6">
+      <div class="flex items-center gap-3">
+        <input type="checkbox" id="print_invoice" name="print_invoice" class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2">
+        <label for="print_invoice" class="flex items-center gap-2 text-gray-700 font-medium cursor-pointer">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+          </svg>
+          Print Invoice after Order Submission
+        </label>
       </div>
+      <p class="text-sm text-gray-500 mt-1 ml-7">Check this option to automatically print the invoice after the order is successfully created.</p>
     </div>
-
 
     <button type="submit" class="w-full py-3 mt-6 rounded-lg text-white font-semibold shadow-md transition-all duration-200" style="background: linear-gradient(135deg, #145c5a 0%, #1dd84f 100%)">Submit Order</button>
   </form>
@@ -122,6 +132,73 @@
     <div class="flex justify-end gap-3 mt-5">
       <button onclick="closeCustomerModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">Cancel</button>
       <button onclick="submitCustomer()" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice Print Template (Hidden) -->
+<div id="invoiceTemplate" class="hidden print:block">
+  <div class="max-w-2xl mx-auto p-8 bg-white">
+    <div class="text-center border-b-2 border-gray-300 pb-6 mb-6">
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">INVOICE</h1>
+      <div class="text-gray-600">
+        <p class="font-semibold">Your Company Name</p>
+        <p>123 Business Street, City, State 12345</p>
+        <p>Phone: (123) 456-7890 | Email: info@company.com</p>
+      </div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-6 mb-6">
+      <div>
+        <h3 class="font-semibold text-gray-800 mb-2">Bill To:</h3>
+        <div id="invoice-customer" class="text-gray-600"></div>
+      </div>
+      <div class="text-right">
+        <h3 class="font-semibold text-gray-800 mb-2">Invoice Details:</h3>
+        <div class="text-gray-600">
+          <p>Invoice #: <span id="invoice-number"></span></p>
+          <p>Date: <span id="invoice-date"></span></p>
+          <p>Payment: <span id="invoice-payment"></span></p>
+        </div>
+      </div>
+    </div>
+
+    <table class="w-full border-collapse border border-gray-300 mb-6">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="border border-gray-300 p-3 text-left">Product</th>
+          <th class="border border-gray-300 p-3 text-center">Qty</th>
+          <th class="border border-gray-300 p-3 text-right">Price</th>
+          <th class="border border-gray-300 p-3 text-right">Total</th>
+        </tr>
+      </thead>
+      <tbody id="invoice-items">
+      </tbody>
+    </table>
+
+    <div class="text-right mb-6">
+      <div class="inline-block">
+        <div class="flex justify-between items-center py-2 border-b border-gray-300 min-w-64">
+          <span class="font-semibold">Subtotal:</span>
+          <span id="invoice-subtotal"></span>
+        </div>
+        <div class="flex justify-between items-center py-2 border-b-2 border-gray-800 min-w-64">
+          <span class="font-bold text-lg">Total:</span>
+          <span id="invoice-total" class="font-bold text-lg"></span>
+        </div>
+        <div class="flex justify-between items-center py-2 min-w-64">
+          <span class="font-semibold">Amount Paid:</span>
+          <span id="invoice-paid"></span>
+        </div>
+        <div class="flex justify-between items-center py-2 min-w-64">
+          <span class="font-semibold">Balance:</span>
+          <span id="invoice-balance"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center text-gray-600 text-sm border-t border-gray-300 pt-4">
+      <p>Thank you for your business!</p>
     </div>
   </div>
 </div>
@@ -176,7 +253,8 @@ function addRow() {
     </div>
     <div>
       <label class="text-sm text-gray-700">Qty</label>
-      <input type="number" name="quantity[]" value="1" class="form-input w-full" onchange="recalculateTotals()">
+      <input type="number" name="quantity[]" value="1" min="1" class="form-input w-full" onchange="validateQuantity(this); recalculateTotals()">
+      <span class="text-xs text-gray-500 stock-info"></span>
     </div>
     <div>
       <label class="text-sm text-gray-700">Price</label>
@@ -212,17 +290,24 @@ function loadStocks(productSelect) {
         if (stocks.length === 1) {
           const s = stocks[0];
           stockSelect.innerHTML = `
-            <option selected value="${s.StockID}" data-price="${s.SellingPrice}">
+            <option selected value="${s.StockID}" data-price="${s.SellingPrice}" data-qty="${s.Quantity}">
               Stock#${s.StockID} | Qty: ${s.Quantity} | Rs. ${s.SellingPrice}
             </option>`;
           priceDisplay.value = s.SellingPrice;
+          
+          // Set quantity limits
+          const quantityInput = row.querySelector('input[name="quantity[]"]');
+          const stockInfo = row.querySelector('.stock-info');
+          quantityInput.max = s.Quantity;
+          stockInfo.textContent = `Available: ${s.Quantity}`;
+          
           recalculateTotals();
         } else {
           // Multiple options — require user to choose
           stockSelect.innerHTML = '<option value="">-- Select --</option>';
           stocks.forEach(s => {
             stockSelect.innerHTML += `
-              <option value="${s.StockID}" data-price="${s.SellingPrice}">
+              <option value="${s.StockID}" data-price="${s.SellingPrice}" data-qty="${s.Quantity}">
                 Stock#${s.StockID} | Qty: ${s.Quantity} | Rs. ${s.SellingPrice}
               </option>`;
           });
@@ -239,7 +324,23 @@ function loadStocks(productSelect) {
 function updatePrice(stockSelect) {
   const row = stockSelect.closest('div.grid');
   const price = stockSelect.selectedOptions[0]?.getAttribute('data-price') || 0;
-  row.querySelector('.price-display').value = price;
+  const availableQty = stockSelect.selectedOptions[0]?.getAttribute('data-qty') || 0;
+  const priceDisplay = row.querySelector('.price-display');
+  const quantityInput = row.querySelector('input[name="quantity[]"]');
+  const stockInfo = row.querySelector('.stock-info');
+  
+  priceDisplay.value = price;
+  
+  // Update quantity input max and stock info
+  quantityInput.max = availableQty;
+  stockInfo.textContent = `Available: ${availableQty}`;
+  
+  // Validate current quantity
+  if (parseInt(quantityInput.value) > parseInt(availableQty)) {
+    quantityInput.value = availableQty;
+    showStockWarning(`Quantity adjusted to available stock (${availableQty})`);
+  }
+  
   recalculateTotals();
 }
 
@@ -250,16 +351,176 @@ function updateBalance() {
   document.getElementById("balance").value = balance.toFixed(2);
 }
 
-
 function recalculateTotals() {
   let total = 0;
+  let hasValidationError = false;
+  
   document.querySelectorAll('#product-list .grid').forEach(row => {
     const price = parseFloat(row.querySelector('.price-display').value) || 0;
-    const qty = parseInt(row.querySelector('input[name="quantity[]"]').value) || 0;
+    const qtyInput = row.querySelector('input[name="quantity[]"]');
+    const qty = parseInt(qtyInput.value) || 0;
+    const maxQty = parseInt(qtyInput.max) || 0;
+    
+    // Validate quantity doesn't exceed stock
+    if (maxQty > 0 && qty > maxQty) {
+      qtyInput.classList.add('border-red-500', 'bg-red-50');
+      hasValidationError = true;
+    } else {
+      qtyInput.classList.remove('border-red-500', 'bg-red-50');
+    }
+    
     total += price * qty;
   });
+  
   document.getElementById('total_amount').value = total.toFixed(2);
+  
+  // Update submit button state
+  const submitBtn = document.querySelector('button[type="submit"]');
+  if (hasValidationError) {
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    submitBtn.textContent = 'Fix Quantity Issues to Submit';
+  } else {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    submitBtn.textContent = 'Submit Order';
+  }
 }
+
+function validateQuantity(quantityInput) {
+  const maxQty = parseInt(quantityInput.max) || 0;
+  const currentQty = parseInt(quantityInput.value) || 0;
+  const row = quantityInput.closest('div.grid');
+  const stockInfo = row.querySelector('.stock-info');
+  
+  if (maxQty > 0 && currentQty > maxQty) {
+    quantityInput.value = maxQty;
+    showStockWarning(`Maximum available quantity is ${maxQty}`);
+    stockInfo.textContent = `Available: ${maxQty} (Max reached)`;
+    stockInfo.classList.add('text-red-600', 'font-semibold');
+  } else {
+    stockInfo.classList.remove('text-red-600', 'font-semibold');
+    stockInfo.textContent = `Available: ${maxQty}`;
+  }
+}
+
+function showStockWarning(message) {
+  // Create or update warning message
+  let warning = document.getElementById('stock-warning');
+  if (!warning) {
+    warning = document.createElement('div');
+    warning.id = 'stock-warning';
+    warning.className = 'fixed top-4 right-4 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-lg shadow-lg z-50';
+    document.body.appendChild(warning);
+  }
+  
+  warning.innerHTML = `
+    <div class="flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L5.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+      </svg>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  // Auto-hide after 3 seconds
+  setTimeout(() => {
+    warning.remove();
+  }, 3000);
+}
+
+function populateInvoice() {
+  // Get customer info
+  const customerSelect = document.querySelector('select[name="customer_id"]');
+  const customerText = customerSelect.selectedOptions[0]?.text || '';
+  document.getElementById('invoice-customer').innerHTML = `<p>${customerText}</p>`;
+
+  // Get order details
+  document.getElementById('invoice-number').textContent = 'ORD-' + Date.now();
+  document.getElementById('invoice-date').textContent = document.getElementById('date').value;
+  document.getElementById('invoice-payment').textContent = document.querySelector('select[name="payment_type"]').value;
+
+  // Get order items
+  const itemsHtml = [];
+  let subtotal = 0;
+  document.querySelectorAll('#product-list .grid').forEach(row => {
+    const productSelect = row.querySelector('select[name="product_id[]"]');
+    const productName = productSelect.selectedOptions[0]?.text || '';
+    const quantity = parseInt(row.querySelector('input[name="quantity[]"]').value) || 0;
+    const price = parseFloat(row.querySelector('.price-display').value) || 0;
+    const total = price * quantity;
+    subtotal += total;
+
+    itemsHtml.push(`
+      <tr>
+        <td class="border border-gray-300 p-3">${productName}</td>
+        <td class="border border-gray-300 p-3 text-center">${quantity}</td>
+        <td class="border border-gray-300 p-3 text-right">Rs. ${price.toFixed(2)}</td>
+        <td class="border border-gray-300 p-3 text-right">Rs. ${total.toFixed(2)}</td>
+      </tr>
+    `);
+  });
+
+  document.getElementById('invoice-items').innerHTML = itemsHtml.join('');
+  document.getElementById('invoice-subtotal').textContent = 'Rs. ' + subtotal.toFixed(2);
+  document.getElementById('invoice-total').textContent = 'Rs. ' + subtotal.toFixed(2);
+  document.getElementById('invoice-paid').textContent = 'Rs. ' + (parseFloat(document.getElementById('amount_paid').value) || 0).toFixed(2);
+  document.getElementById('invoice-balance').textContent = 'Rs. ' + (parseFloat(document.getElementById('balance').value) || 0);
+}
+
+function printInvoice() {
+  populateInvoice();
+  
+  // Hide main content and show invoice
+  const mainContent = document.querySelector('.max-w-4xl');
+  const invoiceTemplate = document.getElementById('invoiceTemplate');
+  
+  mainContent.style.display = 'none';
+  invoiceTemplate.classList.remove('hidden');
+  
+  // Print
+  window.print();
+  
+  // Restore view after printing
+  setTimeout(() => {
+    mainContent.style.display = 'block';
+    invoiceTemplate.classList.add('hidden');
+  }, 1000);
+}
+
+// Modify form submission to handle print invoice
+document.getElementById('orderForm').addEventListener('submit', function(e) {
+  const shouldPrint = document.getElementById('print_invoice').checked;
+  
+  if (shouldPrint) {
+    e.preventDefault();
+    
+    // Submit form via AJAX
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => {
+      if (response.ok) {
+        // Order submitted successfully, print invoice
+        printInvoice();
+        
+        // Redirect after printing
+        setTimeout(() => {
+          window.location.href = "{{ url_for('order_bp.view_orders') }}";
+        }, 2000);
+      } else {
+        alert('Error submitting order. Please try again.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error submitting order. Please try again.');
+    });
+  }
+});
 
 document.addEventListener("DOMContentLoaded", function () {
   const today = new Date();
@@ -268,5 +529,28 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("date").value = localISODate;
 });
 
+// Print styles
+const printStyles = document.createElement('style');
+printStyles.textContent = `
+  @media print {
+    * {
+      visibility: hidden;
+    }
+    #invoiceTemplate, #invoiceTemplate * {
+      visibility: visible;
+    }
+    #invoiceTemplate {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  }
+`;
+document.head.appendChild(printStyles);
 </script>
 {% endblock %}

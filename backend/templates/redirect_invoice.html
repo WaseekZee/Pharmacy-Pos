@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Redirecting to Invoice...</title>
+  <script>
+    window.onload = function() {
+      const invoiceUrl = `/orders/details/{{ order_id }}`;
+      const win = window.open(invoiceUrl, '_blank');
+      if (win) {
+        win.focus();
+      }
+      window.location.href = '/orders/view';
+    };
+  </script>
+
+</head>
+<body>
+  <p>Redirecting to invoice...</p>
+</body>
+</html>
