@@ -98,19 +98,41 @@ def add_order():
     return render_template("add_order.html", customers=customers, products=products, stocks=stocks , active_page='billing')
 
 # ------------------ VIEW ORDERS ------------------
+from flask import request, render_template
+from sqlalchemy import text
+
 @order_bp.route('/view_orders')
 @login_required
 def view_orders():
-    orders = db.session.execute(text("""
+    # Get current page number from query params (default = 1)
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # number of orders per page
+    offset = (page - 1) * per_page
+
+    # Get paginated orders
+    orders = db.session.execute(text(f"""
         SELECT co.OrderID, co.Date, co.TotalAmount, co.AmountPaid, co.Balance,
                co.PaymentType, c.Name AS CustomerName, e.Name AS EmployeeName
         FROM customerorder co
         JOIN Customer c ON co.CustomerID = c.CustomerID
         JOIN Employee e ON co.EmployeeID = e.EmployeeID
-        ORDER BY co.Date DESC
-    """)).fetchall()
+        ORDER BY co.created_at DESC
+        LIMIT :limit OFFSET :offset
+    """), {"limit": per_page, "offset": offset}).fetchall()
 
-    return render_template("view_orders.html", orders=orders, active_page='billing')
+    # Get total number of orders for pagination
+    total_count = db.session.execute(text("""
+        SELECT COUNT(*) FROM customerorder
+    """)).scalar()
+
+    total_pages = (total_count + per_page - 1) // per_page  # ceiling division
+
+    return render_template("view_orders.html",
+                           orders=orders,
+                           page=page,
+                           total_pages=total_pages,
+                           active_page='billing')
+
 
 
 # ------------------ DELETE ORDER ------------------
@@ -197,7 +219,7 @@ def get_stocks(product_id):
         result = db.session.execute(text("""
             SELECT StockID, ProductID, SellingPrice, Quantity
             FROM Stock
-            WHERE ProductID = :product_id
+            WHERE ProductID = :product_id AND Status NOT IN ('OutOfStock', 'Expired')
         """), {'product_id': product_id})
 
         # ✅ Convert result rows to dictionaries safely

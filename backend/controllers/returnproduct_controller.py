@@ -8,6 +8,16 @@ returnproduct_bp = Blueprint('returnproduct_bp', __name__, url_prefix='/returns'
 # View returns
 @returnproduct_bp.route('/')
 def view_returns():
+    # Get current page number
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
+
+    # Get total number of return invoices
+    total_count = db.session.execute(text("SELECT COUNT(*) FROM returninvoice")).scalar()
+    total_pages = (total_count + per_page - 1) // per_page  # Ceiling division
+
+    # Fetch paginated return invoices
     invoices = db.session.execute(text("""
         SELECT ri.InvoiceID, ri.Date, ri.Amount,
                c.Name AS CustomerName,
@@ -16,9 +26,15 @@ def view_returns():
         JOIN customer c ON ri.CustomerID = c.CustomerID
         JOIN employee e ON ri.EmployeeID = e.EmployeeID
         ORDER BY ri.Date DESC
-    """)).fetchall()
+        LIMIT :limit OFFSET :offset
+    """), {"limit": per_page, "offset": offset}).fetchall()
 
-    return render_template('view_returns.html', invoices=invoices, active_page='return')
+    return render_template('view_returns.html',
+                           invoices=invoices,
+                           page=page,
+                           total_pages=total_pages,
+                           active_page='return')
+
 
 
 
@@ -32,17 +48,26 @@ def add_return():
             flash("Please enter a valid Order ID", "danger")
             return redirect(url_for('returnproduct_bp.add_return'))
 
+        # Check if this order has already been returned
+        existing_return = db.session.execute(text("""
+            SELECT 1 FROM returninvoice WHERE OrderID = :order_id LIMIT 1
+        """), {'order_id': order_id}).scalar()
+
+        if existing_return:
+            # If the order has already been returned, show a flash message and prevent further return
+            flash("This order has already been returned. You cannot return the products again.", "warning")
+            return redirect(url_for('returnproduct_bp.add_return'))
+
         # Fetch products from pack table related to the order
         # Updated pack query to include SellingPrice
-        products = db.session.execute(text("""
-            SELECT pk.ProductID, pk.StockID, pk.Quantity, p.ProductName, co.CustomerID, s.SellingPrice
-            FROM pack pk
-            JOIN product p ON pk.ProductID = p.ProductID
-            JOIN customerorder co ON pk.OrderID = co.OrderID
-            JOIN stock s ON pk.StockID = s.StockID AND pk.ProductID = s.ProductID
+        products = db.session.execute(text(""" 
+            SELECT pk.ProductID, pk.StockID, pk.Quantity, p.ProductName, co.CustomerID, s.SellingPrice 
+            FROM pack pk 
+            JOIN product p ON pk.ProductID = p.ProductID 
+            JOIN customerorder co ON pk.OrderID = co.OrderID 
+            JOIN stock s ON pk.StockID = s.StockID AND pk.ProductID = s.ProductID 
             WHERE pk.OrderID = :order_id
         """), {'order_id': order_id}).fetchall()
-
 
         if not products:
             flash("No products found for this order.", "warning")
@@ -51,6 +76,7 @@ def add_return():
         return render_template('add_return.html', products=products, order_id=order_id , active_page='return')
 
     return render_template('add_return.html', active_page='return')
+
 
 @returnproduct_bp.route('/invoice/<int:invoice_id>')
 def view_invoice(invoice_id):
@@ -174,4 +200,4 @@ def submit_return():
 
     db.session.commit()
     flash("Return processed and invoice created successfully.", "success")
-    return redirect(url_for('returnproduct_bp.view_returns') , active_page='return')
+    return redirect(url_for('returnproduct_bp.view_returns'))

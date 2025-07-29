@@ -43,14 +43,33 @@ def add_supplier():
 @supplier_bp.route('/view', methods=['GET'])
 @login_required
 def view_suppliers():
+    # Pagination setup
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
+
+    # Total count for pagination
+    total_count = db.session.execute(text("SELECT COUNT(*) FROM supplier")).scalar()
+    total_pages = (total_count + per_page - 1) // per_page  # ceiling division
+
+    # Fetch paginated suppliers
     suppliers = db.session.execute(text("""
         SELECT * FROM supplier
-    """)).fetchall()
+        ORDER BY SupplierID DESC
+        LIMIT :limit OFFSET :offset
+    """), {"limit": per_page, "offset": offset}).fetchall()
 
-    return render_template("view_suppliers.html", suppliers=suppliers, active_page="supplier")
+    return render_template("view_suppliers.html",
+                           suppliers=suppliers,
+                           page=page,
+                           total_pages=total_pages,
+                           active_page="supplier")
+
 
 
 # ------------------ Edit Supplier ------------------
+from sqlalchemy.exc import SQLAlchemyError
+
 @supplier_bp.route('/edit/<int:supplier_id>', methods=['POST'])
 @login_required
 def edit_supplier(supplier_id):
@@ -78,14 +97,19 @@ def edit_supplier(supplier_id):
             }
         )
         db.session.commit()
-        flash("Supplier updated successfully!", "success")
-    except Exception as e:
-        flash(f"Error updating supplier: {e}", "danger")
+        flash("✅ Supplier updated successfully!", "success")
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        flash("❌ Error updating supplier. Please check the details and try again.", "danger")
 
     return redirect(url_for('supplier_bp.view_suppliers'))
 
 
+
 # ------------------ Delete Supplier ------------------
+from sqlalchemy.exc import IntegrityError
+
 @supplier_bp.route('/delete/<int:supplier_id>', methods=['POST'])
 @login_required
 def delete_supplier(supplier_id):
@@ -95,8 +119,15 @@ def delete_supplier(supplier_id):
             {'id': supplier_id}
         )
         db.session.commit()
-        flash("Supplier deleted successfully!", "success")
-    except Exception as e:
-        flash(f"Error deleting supplier: {e}", "danger")
+        flash("✅ Supplier deleted successfully!", "success")
 
-    return redirect(url_for('supplier_bp.view_suppliers'))
+    except IntegrityError:
+        db.session.rollback()
+        flash("❌ Cannot delete supplier: This supplier is used in stock or product entries.", "danger")
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"❌ An unexpected error occurred: {str(e)}", "danger")
+
+    return redirect(url_for('supplier_bp.view_suppliers'))  # ✅ Always redirect to view page
+

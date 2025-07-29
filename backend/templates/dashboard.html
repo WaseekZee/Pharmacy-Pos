@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Dashboard Header -->
+    <div class="mb-8">
+      <h1 class="text-4xl font-bold text-slate-800">Pharmacy Dashboard</h1>
+      <p class="text-lg text-slate-600">Track your sales and product performance at a glance</p>
+    </div>
+    
+    <!-- Total Sales -->
+    <div class="mt-6 bg-white p-6 rounded-lg shadow-lg">
+      <h2 class="text-xl font-semibold text-slate-800">Total Sales This Month</h2>
+      <p class="text-2xl font-bold text-emerald-600">${{ total_sales | round(2) }}</p>
+    </div>
+
+    <!-- Charts Container -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <!-- Top-Selling Products -->
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-xl font-semibold text-slate-800 mb-4">Top-Selling Products</h2>
+        <canvas id="topSellingProductsChart" width="400" height="300"></canvas>
+      </div>
+
+      <!-- Least-Selling Products -->
+      <div class="bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-xl font-semibold text-slate-800 mb-4">Least-Selling Products</h2>
+        <canvas id="leastSellingProductsChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+
+    <!-- Sales Trend -->
+    <div class="mt-6 bg-white p-6 rounded-lg shadow-lg">
+      <h2 class="text-xl font-semibold text-slate-800 mb-4">Sales Trend (Monthly)</h2>
+      <canvas id="salesTrendChart" width="800" height="400"></canvas>
+    </div>
+
+  </div>
+</div>
+
+<!-- Hidden data containers -->
+<script type="application/json" id="dashboard-data">
+{
+  "totalSales": {{ total_sales | round(2) | tojson }},
+  "topSellingProducts": {{ top_selling_products | tojson }},
+  "leastSellingProducts": {{ least_selling_products | tojson }},
+  "salesTrendLabels": {{ sales_trend_labels | tojson }},
+  "salesTrendValues": {{ sales_trend_values | tojson }}
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Get data from JSON script tag
+  const dashboardData = JSON.parse(document.getElementById('dashboard-data').textContent);
+  
+  // Safely get data with fallbacks
+  const topProducts = dashboardData.topSellingProducts || [];
+  const leastProducts = dashboardData.leastSellingProducts || [];
+  const trendLabels = dashboardData.salesTrendLabels || [];
+  const trendValues = dashboardData.salesTrendValues || [];
+
+  // Chart configuration
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top'
+      }
+    }
+  };
+
+  // Top-Selling Products Chart
+  if (topProducts.length > 0) {
+    const ctx1 = document.getElementById('topSellingProductsChart').getContext('2d');
+    new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: topProducts.map(product => product.ProductName || 'Unknown'),
+        datasets: [{
+          label: 'Revenue ($)',
+          data: topProducts.map(product => product.total_revenue || 0),
+          backgroundColor: '#10B981',
+          borderColor: '#059669',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        ...chartOptions,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '$' + value.toLocaleString();
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Least-Selling Products Chart
+  if (leastProducts.length > 0) {
+    const ctx2 = document.getElementById('leastSellingProductsChart').getContext('2d');
+    new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: leastProducts.map(product => product.ProductName || 'Unknown'),
+        datasets: [{
+          label: 'Units Sold',
+          data: leastProducts.map(product => product.total_sold || 0),
+          backgroundColor: '#F59E0B',
+          borderColor: '#D97706',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        ...chartOptions,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  // Sales Trend Chart
+  if (trendLabels.length > 0 && trendValues.length > 0) {
+    const ctx3 = document.getElementById('salesTrendChart').getContext('2d');
+    new Chart(ctx3, {
+      type: 'line',
+      data: {
+        labels: trendLabels,
+        datasets: [{
+          label: 'Sales Revenue ($)',
+          data: trendValues,
+          borderColor: '#3B82F6',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#3B82F6',
+          pointBorderColor: '#1D4ED8',
+          pointBorderWidth: 2,
+          pointRadius: 5
+        }]
+      },
+      options: {
+        ...chartOptions,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '$' + value.toLocaleString();
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
+
+{% endblock %}

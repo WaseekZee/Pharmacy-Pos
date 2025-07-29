@@ -30,10 +30,12 @@ def add_employee():
                 }
             )
             db.session.commit()
-            flash('Employee added successfully!', 'success')
-            return redirect(url_for('employee_bp.add_employee'))
+
+            flash("Employee added successfully!", "success")  # ✅ set the flash message
+            return redirect(url_for('employee_bp.view_employees'))  # ✅ correct redirect target
+
         except Exception as e:
-            flash(f"Error: {e}", 'danger')
+            flash(f"Error: {e}", "danger")
             return redirect(url_for('employee_bp.add_employee'))
 
     return render_template("add_employee.html", active_page="employee")

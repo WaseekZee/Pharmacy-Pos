@@ -23,5 +23,5 @@ def add_brand():
         except Exception as e:
             return f"Error adding brand: {e}"
 
-    return render_template('add_brand.html')
+    return render_template('add_brand.html' , active_page='brands')
 

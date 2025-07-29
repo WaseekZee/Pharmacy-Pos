@@ -137,17 +137,20 @@
 </div>
 
 <!-- Invoice Print Template (Hidden) -->
+
 <div id="invoiceTemplate" class="hidden print:block">
-  <div class="max-w-2xl mx-auto p-8 bg-white">
+  <div class="mx-auto p-4 bg-white" style="width: 80mm; font-size: 12px; line-height: 1.4;">
+    <!-- Header Section -->
     <div class="text-center border-b-2 border-gray-300 pb-6 mb-6">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">INVOICE</h1>
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">INVOICE</h1>
       <div class="text-gray-600">
         <p class="font-semibold">Your Company Name</p>
         <p>123 Business Street, City, State 12345</p>
         <p>Phone: (123) 456-7890 | Email: info@company.com</p>
       </div>
     </div>
-    
+
+    <!-- Customer & Invoice Details Section -->
     <div class="grid grid-cols-2 gap-6 mb-6">
       <div>
         <h3 class="font-semibold text-gray-800 mb-2">Bill To:</h3>
@@ -163,19 +166,22 @@
       </div>
     </div>
 
+    <!-- Invoice Items Table -->
     <table class="w-full border-collapse border border-gray-300 mb-6">
       <thead>
         <tr class="bg-gray-100">
-          <th class="border border-gray-300 p-3 text-left">Product</th>
-          <th class="border border-gray-300 p-3 text-center">Qty</th>
-          <th class="border border-gray-300 p-3 text-right">Price</th>
-          <th class="border border-gray-300 p-3 text-right">Total</th>
+          <th class="border border-gray-300 p-2 text-left">Product</th>
+          <th class="border border-gray-300 p-2 text-center">Qty</th>
+          <th class="border border-gray-300 p-2 text-right">Price</th>
+          <th class="border border-gray-300 p-2 text-right">Total</th>
         </tr>
       </thead>
       <tbody id="invoice-items">
+        <!-- Dynamically filled by JS -->
       </tbody>
     </table>
 
+    <!-- Subtotal, Total, Paid, Balance Section -->
     <div class="text-right mb-6">
       <div class="inline-block">
         <div class="flex justify-between items-center py-2 border-b border-gray-300 min-w-64">
@@ -197,11 +203,14 @@
       </div>
     </div>
 
+    <!-- Thank You Note -->
     <div class="text-center text-gray-600 text-sm border-t border-gray-300 pt-4">
       <p>Thank you for your business!</p>
     </div>
   </div>
 </div>
+
+
 
 <script>
 function openCustomerModal() {
@@ -532,24 +541,46 @@ document.addEventListener("DOMContentLoaded", function () {
 // Print styles
 const printStyles = document.createElement('style');
 printStyles.textContent = `
-  @media print {
-    * {
-      visibility: hidden;
-    }
-    #invoiceTemplate, #invoiceTemplate * {
-      visibility: visible;
-    }
-    #invoiceTemplate {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-    }
+/* Ensure the page size for both print and PDF */
+/* Ensure the page size for both print and PDF */
+@page {
+  size: 80mm auto; /* 80mm width and auto height */
+  margin: 0;
+}
+
+/* Specific styles for printing (when printing directly from browser) */
+@media print {
+  * {
+    visibility: hidden; /* Hide all content except the invoice */
   }
+
+  #invoiceTemplate, #invoiceTemplate * {
+    visibility: visible; /* Make the invoice content visible */
+  }
+
+  #invoiceTemplate {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm; /* Set invoice container to 80mm width */
+    padding: 5mm; /* Adjust padding as necessary */
+    font-size: 12px; /* Adjust font size for readability */
+    line-height: 1.4; /* Adjust line height */
+  }
+
+  /* Hide unnecessary parts of the page for print */
+  body {
+    width: 80mm;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Optional: Hide headers and footers in print */
+  header, footer {
+    display: none;
+  }
+}
+
 `;
 document.head.appendChild(printStyles);
 </script>

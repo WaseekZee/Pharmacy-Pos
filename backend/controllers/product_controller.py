@@ -45,16 +45,34 @@ def add_product():
 @product_bp.route('/view', methods=['GET'])
 @login_required
 def view_products():
+    # Get current page from query string
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Items per page
+    offset = (page - 1) * per_page
+
+    # Fetch paginated products
     products = db.session.execute(text("""
         SELECT p.ProductID, p.ProductName AS name, p.Description AS description,
                p.Category AS category, p.BrandID, b.Name AS brand_name
         FROM Product p
         JOIN Brand b ON p.BrandID = b.BrandID
-    """)).fetchall()
+        LIMIT :limit OFFSET :offset
+    """), {"limit": per_page, "offset": offset}).fetchall()
 
+    # Fetch total product count
+    total_count = db.session.execute(text("SELECT COUNT(*) FROM Product")).scalar()
+    total_pages = (total_count + per_page - 1) // per_page  # Ceiling division
+
+    # Fetch all brands
     brands = db.session.execute(text("SELECT BrandID, Name FROM Brand")).fetchall()
 
-    return render_template("view_products.html", products=products, brands=brands , active_page="product")
+    return render_template("view_products.html",
+                           products=products,
+                           brands=brands,
+                           page=page,
+                           total_pages=total_pages,
+                           active_page="product")
+
 
 
 # ------------------ Edit Product ------------------
@@ -93,6 +111,9 @@ def edit_product(product_id):
 
 
 # ------------------ Delete Product ------------------
+from sqlalchemy.exc import IntegrityError
+from flask import flash, redirect, url_for
+
 @product_bp.route('/delete/<int:product_id>', methods=['POST'])
 @login_required
 def delete_product(product_id):
@@ -102,8 +123,13 @@ def delete_product(product_id):
             {'id': product_id}
         )
         db.session.commit()
-        flash("Product deleted successfully!", "success")
+        flash("✅ Product deleted successfully!", "success")
+    except IntegrityError:
+        db.session.rollback()
+        flash("❌ Cannot delete product: It is associated with existing orders.", "danger")
     except Exception as e:
-        flash(f"Error deleting product: {e}", "danger")
+        db.session.rollback()
+        flash(f"❌ An unexpected error occurred: {str(e)}", "danger")
 
     return redirect(url_for('product_bp.view_products'))
+

@@ -5,25 +5,25 @@ from app_init import db
 
 stock_bp = Blueprint('stock_bp', __name__, url_prefix='/stock')
 
-# ------------------ VIEW STOCK ------------------
+
 @stock_bp.route('/')
 @login_required
 def view_stock():
     from datetime import date
 
-    # Step 1: Fetch all stock records
-    stocks = db.session.execute(text("""
-        SELECT s.StockID, s.ProductID, s.ExpDate , s.MfgDate,
-               s.PurchasePrice, s.SellingPrice, s.Quantity,
-               s.SupplierID, s.Status, p.ProductName
-        FROM stock s
-        JOIN product p ON s.ProductID = p.ProductID
-        ORDER BY s.StockID DESC
+    # Pagination setup
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
+
+    # Step 1: Update statuses globally (for simplicity)
+    stocks_to_update = db.session.execute(text("""
+        SELECT StockID, ProductID, ExpDate, Quantity, Status
+        FROM stock
     """)).fetchall()
 
-    # Step 2: Evaluate status for each record and update if needed
     today = date.today()
-    for stock in stocks:
+    for stock in stocks_to_update:
         if stock.ExpDate < today:
             new_status = "Expired"
         elif stock.Quantity == 0:
@@ -44,17 +44,26 @@ def view_stock():
 
     db.session.commit()
 
-    # Step 3: Re-fetch updated records to pass to template
-    updated_stocks = db.session.execute(text("""
+    # Step 2: Get total count for pagination
+    total_count = db.session.execute(text("SELECT COUNT(*) FROM stock")).scalar()
+    total_pages = (total_count + per_page - 1) // per_page
+
+    # Step 3: Fetch paginated stock records
+    paginated_stocks = db.session.execute(text("""
         SELECT s.StockID, s.ProductID, s.ExpDate , s.MfgDate,
                s.PurchasePrice, s.SellingPrice, s.Quantity,
-               s.SupplierID, s.Status, p.ProductName
+               s.SupplierID, s.Status, s.Damaged, p.ProductName
         FROM stock s
         JOIN product p ON s.ProductID = p.ProductID
         ORDER BY s.StockID DESC
-    """)).fetchall()
+        LIMIT :limit OFFSET :offset
+    """), {"limit": per_page, "offset": offset}).fetchall()
 
-    return render_template('view_stock.html', stocks=updated_stocks, active_page='stock')
+    return render_template('view_stock.html',
+                           stocks=paginated_stocks,
+                           page=page,
+                           total_pages=total_pages,
+                           active_page='stock')
 
 
 @stock_bp.route('/add', methods=['GET'])

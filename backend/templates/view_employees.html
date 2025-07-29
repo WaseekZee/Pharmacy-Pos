@@ -4,120 +4,379 @@
 {% block page_title %}Employee Management{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-    <!-- Top Tabs -->
-    <div class="mb-6">
-        <div class="flex space-x-1 bg-white p-2 rounded-full shadow-lg inline-flex">
-            <a href="{{ url_for('employee_bp.add_employee') }}">
-                <button class="btn-tab">
-                    <i class="fas fa-user-plus mr-2"></i> Add Employee
-                </button>
-            </a>
-            <a href="{{ url_for('employee_bp.view_employees') }}">
-                <button class="btn-tab active">
-                    <i class="fas fa-users mr-2"></i> View Employees
-                </button>
-            </a>
-        </div>
-    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="mb-4 p-4 rounded-lg shadow
+                  {% if category == 'success' %} bg-green-100 border border-green-300 text-green-800
+                  {% elif category == 'danger' %} bg-red-100 border border-red-300 text-red-800
+                  {% else %} bg-gray-100 border border-gray-300 text-gray-800 {% endif %}">
+        {{ message }}
+      </div>
+      <script>
+        setTimeout(() => {
+          document.querySelectorAll('.mb-4.rounded-lg').forEach(el => el.classList.add('hidden'));
+        }, 4000);
+      </script>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
 
-    <!-- Employee Table -->
-    <div class="bg-white shadow-md rounded-lg overflow-x-auto">
-        <table class="min-w-full text-sm text-left">
-            <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
-                <tr>
-                    <th class="px-6 py-3">Name</th>
-                    <th class="px-6 py-3">Type</th>
-                    <th class="px-6 py-3">Username</th>
-                    <th class="px-6 py-3">Password</th>
-                    <th class="px-6 py-3">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for emp in employees %}
-                <tr>
-                    <td class="px-6 py-4">{{ emp.Name }}</td>
-                    <td class="px-6 py-4">{{ emp.Type }}</td>
-                    <td class="px-6 py-4">{{ emp.Username or '—' }}</td>
-                    <td class="px-6 py-4">{{ emp.Password }}</td>
-                    <td class="px-6 py-4 space-x-2">
-                        <!-- Edit -->
-                        <button
-                            class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded text-xs"
-                            data-id="{{ emp.EmployeeID }}"
-                            data-name="{{ emp.Name }}"
-                            data-type="{{ emp.Type }}"
-                            data-username="{{ emp.Username }}"
-                            data-password="{{ emp.Password }}"
-                            onclick="openEditModal(this)">
-                            <i class="fas fa-edit mr-1"></i>Edit
-                        </button>
-
-                        <!-- Delete -->
-                        <form action="{{ url_for('employee_bp.delete_employee', employee_id=emp.EmployeeID) }}"
-                              method="POST" class="inline">
-                            <button type="submit"
-                                    onclick="return confirm('Are you sure you want to delete this employee?')"
-                                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-xs">
-                                <i class="fas fa-trash-alt mr-1"></i>Delete
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Edit Modal -->
-<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg w-full max-w-xl p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-gray-800">Edit Employee</h3>
-            <button onclick="closeEditModal()" class="text-gray-500 hover:text-red-600">
-                <i class="fas fa-times text-lg"></i>
-            </button>
-        </div>
-        <form id="editForm" method="POST">
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input type="text" name="editName" id="editName" required class="w-full border rounded px-3 py-2">
+    
+    <!-- Header Section -->
+    <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Employee Management</h1>
+                <p class="mt-2 text-gray-600">Manage your team members and their access credentials</p>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select name="editType" id="editType" required class="w-full border rounded px-3 py-2">
+            
+            <!-- Action Tabs -->
+            <div class="flex bg-gray-100 p-1 rounded-xl shadow-sm">
+                <a href="{{ url_for('employee_bp.add_employee') }}" class="flex-1">
+                    <button class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg text-gray-600 hover:text-gray-900 hover:bg-white transition-all duration-200">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Add Employee
+                    </button>
+                </a>
+                <a href="{{ url_for('employee_bp.view_employees') }}" class="flex-1">
+                    <button class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg bg-white text-blue-600 shadow-sm">
+                        <i class="fas fa-users mr-2"></i>
+                        View Employees
+                    </button>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex flex-col sm:flex-row gap-4">
+            <!-- Search Input -->
+            <div class="flex-1">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                    <input type="text" 
+                           id="searchInput" 
+                           placeholder="Search by name, type, or username..." 
+                           class="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                </div>
+            </div>
+            
+            <!-- Type Filter -->
+            <div class="sm:w-48">
+                <select id="typeFilter" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                    <option value="">All Types</option>
                     <option value="Manager">Manager</option>
                     <option value="Cashier">Cashier</option>
                     <option value="StockKeeper">StockKeeper</option>
                     <option value="Delivery">Delivery</option>
                 </select>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                <input type="text" name="editUsername" id="editUsername" class="w-full border rounded px-3 py-2">
+            
+            <!-- Clear Filter Button -->
+            <button id="clearFilters" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 flex items-center">
+                <i class="fas fa-times mr-2"></i>
+                Clear
+            </button>
+        </div>
+        
+        <!-- Results Counter -->
+        <div class="mt-4 text-sm text-gray-600">
+            <span id="resultsCount">{{ employees|length }}</span> employee(s) found
+        </div>
+    </div>
+
+    <!-- Employee Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div class="flex items-center">
+                                <i class="fas fa-user mr-2"></i>
+                                Employee Details
+                            </div>
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div class="flex items-center">
+                                <i class="fas fa-briefcase mr-2"></i>
+                                Role
+                            </div>
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div class="flex items-center">
+                                <i class="fas fa-key mr-2"></i>
+                                Credentials
+                            </div>
+                        </th>
+                        <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody" class="bg-white divide-y divide-gray-200">
+                    {% for emp in employees %}
+                    <tr class="employee-row hover:bg-gray-50 transition-colors duration-150" 
+                        data-name="{{ emp.Name|lower }}" 
+                        data-type="{{ emp.Type|lower }}" 
+                        data-username="{{ (emp.Username or '')|lower }}">
+                        
+                        <!-- Employee Details -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                                        <span class="text-white font-semibold text-sm">{{ emp.Name[0]|upper }}</span>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ emp.Name }}</div>
+                                    <div class="text-sm text-gray-500">ID: {{ emp.EmployeeID }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Role -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full
+                                {% if emp.Type == 'Manager' %}bg-purple-100 text-purple-800
+                                {% elif emp.Type == 'Cashier' %}bg-green-100 text-green-800
+                                {% elif emp.Type == 'StockKeeper' %}bg-blue-100 text-blue-800
+                                {% elif emp.Type == 'Delivery' %}bg-orange-100 text-orange-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ emp.Type }}
+                            </span>
+                        </td>
+                        
+                        <!-- Credentials -->
+                        <td class="px-6 py-4">
+                            <div class="space-y-1">
+                                <div class="text-sm text-gray-900">
+                                    <span class="font-medium">Username:</span> 
+                                    <span class="text-gray-600">{{ emp.Username or '—' }}</span>
+                                </div>
+                                <div class="text-sm text-gray-900">
+                                    <span class="font-medium">Password:</span> 
+                                    <span class="password-field text-gray-600 font-mono" data-password="{{ emp.Password }}">
+                                        <span class="hidden-password">••••••••</span>
+                                        <span class="visible-password hidden">{{ emp.Password }}</span>
+                                        <button onclick="togglePassword(this)" class="ml-2 text-blue-600 hover:text-blue-800">
+                                            <i class="fas fa-eye text-xs"></i>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Actions -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <div class="flex items-center justify-center space-x-2">
+                                <!-- Edit Button -->
+                                <button
+                                    class="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                                    data-id="{{ emp.EmployeeID }}"
+                                    data-name="{{ emp.Name }}"
+                                    data-type="{{ emp.Type }}"
+                                    data-username="{{ emp.Username }}"
+                                    data-password="{{ emp.Password }}"
+                                    onclick="openEditModal(this)">
+                                    <i class="fas fa-edit mr-1"></i>
+                                    Edit
+                                </button>
+
+                                <!-- Delete Button -->
+                                <form action="{{ url_for('employee_bp.delete_employee', employee_id=emp.EmployeeID) }}"
+                                      method="POST" class="inline">
+                                    <button type="submit"
+                                            onclick="return confirm('Are you sure you want to delete {{ emp.Name }}? This action cannot be undone.')"
+                                            class="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
+                                        <i class="fas fa-trash-alt mr-1"></i>
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- No Results Message -->
+        <div id="noResults" class="hidden p-8 text-center">
+            <div class="flex flex-col items-center">
+                <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
+                <p class="text-gray-500">Try adjusting your search criteria or filters</p>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input type="text" name="editPassword" id="editPassword" required class="w-full border rounded px-3 py-2">
-            </div>
-            <div class="flex justify-end space-x-2">
-                <button type="button" onclick="closeEditModal()"
-                        class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">
-                    Cancel
-                </button>
-                <button type="submit"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold">
-                    Save Changes
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<!-- JS to populate modal -->
+<!-- Enhanced Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+        <div class="p-6">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">Edit Employee</h3>
+                    <p class="text-sm text-gray-500 mt-1">Update employee information</p>
+                </div>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 transition-colors duration-200">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form -->
+            <form id="editForm" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user mr-1"></i>
+                        Full Name
+                    </label>
+                    <input type="text" 
+                           name="editName" 
+                           id="editName" 
+                           required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-briefcase mr-1"></i>
+                        Role
+                    </label>
+                    <select name="editType" 
+                            id="editType" 
+                            required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                        <option value="Manager">Manager</option>
+                        <option value="Cashier">Cashier</option>
+                        <option value="StockKeeper">StockKeeper</option>
+                        <option value="Delivery">Delivery</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-at mr-1"></i>
+                        Username
+                    </label>
+                    <input type="text" 
+                           name="editUsername" 
+                           id="editUsername" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-lock mr-1"></i>
+                        Password
+                    </label>
+                    <input type="text" 
+                           name="editPassword" 
+                           id="editPassword" 
+                           required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <button type="button" 
+                            onclick="closeEditModal()"
+                            class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                        <i class="fas fa-save mr-2"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+// Search and Filter Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const typeFilter = document.getElementById('typeFilter');
+    const clearFilters = document.getElementById('clearFilters');
+    const employeeRows = document.querySelectorAll('.employee-row');
+    const resultsCount = document.getElementById('resultsCount');
+    const noResults = document.getElementById('noResults');
+    const tableBody = document.getElementById('employeeTableBody');
+
+    function filterEmployees() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedType = typeFilter.value.toLowerCase();
+        let visibleCount = 0;
+
+        employeeRows.forEach(row => {
+            const name = row.dataset.name;
+            const type = row.dataset.type;
+            const username = row.dataset.username;
+
+            const matchesSearch = name.includes(searchTerm) || 
+                                username.includes(searchTerm) || 
+                                type.includes(searchTerm);
+            const matchesType = !selectedType || type === selectedType;
+
+            if (matchesSearch && matchesType) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        resultsCount.textContent = visibleCount;
+        
+        if (visibleCount === 0) {
+            noResults.classList.remove('hidden');
+        } else {
+            noResults.classList.add('hidden');
+        }
+    }
+
+    searchInput.addEventListener('input', filterEmployees);
+    typeFilter.addEventListener('change', filterEmployees);
+    
+    clearFilters.addEventListener('click', function() {
+        searchInput.value = '';
+        typeFilter.value = '';
+        filterEmployees();
+    });
+});
+
+// Password Toggle Functionality
+function togglePassword(button) {
+    const passwordField = button.closest('.password-field');
+    const hiddenPassword = passwordField.querySelector('.hidden-password');
+    const visiblePassword = passwordField.querySelector('.visible-password');
+    const icon = button.querySelector('i');
+
+    if (hiddenPassword.classList.contains('hidden')) {
+        hiddenPassword.classList.remove('hidden');
+        visiblePassword.classList.add('hidden');
+        icon.className = 'fas fa-eye text-xs';
+    } else {
+        hiddenPassword.classList.add('hidden');
+        visiblePassword.classList.remove('hidden');
+        icon.className = 'fas fa-eye-slash text-xs';
+    }
+}
+
+// Modal Functionality
 function openEditModal(button) {
     const id = button.dataset.id;
     const name = button.dataset.name;
@@ -131,13 +390,38 @@ function openEditModal(button) {
     document.getElementById('editPassword').value = password;
 
     document.getElementById('editForm').action = `/employees/edit/${id}`;
-    document.getElementById('editModal').classList.remove('hidden');
-    document.getElementById('editModal').classList.add('flex');
+    
+    const modal = document.getElementById('editModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Animate modal appearance
+    setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+    }, 10);
 }
 
 function closeEditModal() {
-    document.getElementById('editModal').classList.add('hidden');
-    document.getElementById('editModal').classList.remove('flex');
+    const modal = document.getElementById('editModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    modalContent.classList.remove('scale-100', 'opacity-100');
+    modalContent.classList.add('scale-95', 'opacity-0');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
 }
+
+// Close modal when clicking outside
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditModal();
+    }
+});
 </script>
 {% endblock %}
