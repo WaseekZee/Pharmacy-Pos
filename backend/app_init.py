@@ -31,6 +31,7 @@ def create_app():
     from controllers.supplier_controller import supplier_bp
     from controllers.employee_controller import employee_bp
     from controllers.dashboard import dashboard_bp 
+    from controllers.supplier_return_controller import supplier_return_bp
 
 
     app.register_blueprint(test_bp)
@@ -44,6 +45,7 @@ def create_app():
     app.register_blueprint(supplier_bp)
     app.register_blueprint(employee_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(supplier_return_bp)
     return app
 
 # ✅ Import your custom EmployeeUser class

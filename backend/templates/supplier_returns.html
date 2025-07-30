@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% set active_page = 'return' %}
+{% block title %}Return to Supplier{% endblock %}
+{% block page_title %}Return to Supplier{% endblock %}
+
+{% block content %}
+<div class="card-custom p-6 mb-8">
+    <!-- Filter + Search for Section A ONLY -->
+    <form method="GET" action="{{ url_for('supplier_return_bp.supplier_returns') }}" class="flex flex-wrap items-center justify-between mb-4 gap-2">
+        <div class="flex items-center gap-3">
+            <label class="text-sm font-medium">Filter:</label>
+            <select name="reason" onchange="this.form.submit()" class="border rounded px-3 py-1">
+                <option value="all" {{ 'selected' if reason_filter == 'all' else '' }}>All</option>
+                <option value="Expired" {{ 'selected' if reason_filter == 'Expired' else '' }}>Expired</option>
+                <option value="Damaged" {{ 'selected' if reason_filter == 'Damaged' else '' }}>Damaged</option>
+            </select>
+        </div>
+
+        <input type="text" id="searchInput" placeholder="Search product or supplier..."
+               class="border px-3 py-1 rounded w-64">
+        
+        <!-- Hidden field to preserve current page when filtering -->
+        <input type="hidden" name="page" value="{{ current_page or 1 }}">
+    </form>
+
+    <h2 class="text-lg font-semibold mb-2 text-gray-800">📎 Returnable Items</h2>
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
+            <thead class="bg-gray-100 text-gray-700 font-semibold">
+                <tr>
+                    <th class="px-4 py-2">Stock ID</th>
+                    <th class="px-4 py-2">Product</th>
+                    <th class="px-4 py-2">Supplier</th>
+                    <th class="px-4 py-2">Expiry Date</th>
+                    <th class="px-4 py-2">Quantity</th>
+                    <th class="px-4 py-2">Reason</th>
+                    <th class="px-4 py-2">Action</th>
+                </tr>
+            </thead>
+            <tbody id="returnsTableBody">
+                {% for item in returns %}
+                <tr class="return-row"
+                    data-product="{{ item.ProductName|lower }}"
+                    data-supplier="{{ item.SupplierName|lower }}">
+                    <td class="px-4 py-2">{{ item.StockID }}</td>
+                    <td class="px-4 py-2">{{ item.ProductName }}</td>
+                    <td class="px-4 py-2">{{ item.SupplierName }}</td>
+                    <td class="px-4 py-2">{{ item.ExpDate.strftime('%Y-%m-%d') if item.ExpDate else 'N/A' }}</td>
+                    <td class="px-4 py-2">{{ item.ReturnQuantity }}</td>
+                    <td class="px-4 py-2">{{ item.Reason }}</td>
+                    <td class="px-4 py-2">
+                        <form method="POST" action="{{ url_for('supplier_return_bp.process_return') }}">
+                            <input type="hidden" name="stock_id" value="{{ item.StockID }}">
+                            <input type="hidden" name="product_id" value="{{ item.ProductID }}">
+                            <input type="hidden" name="quantity" value="{{ item.ReturnQuantity }}">
+                            <input type="hidden" name="reason" value="{{ item.Reason }}">
+                            <!-- Preserve current filters after return -->
+                            <input type="hidden" name="return_to_list" value="true">
+                            <input type="hidden" name="current_reason_filter" value="{{ reason_filter }}">
+                            <input type="hidden" name="current_page" value="{{ current_page }}">
+                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+                                <i class="fas fa-undo mr-1"></i> Return
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-gray-500 px-6 py-4">No returnable items found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="mt-4 flex justify-center items-center gap-2">
+        {% for page in range(1, total_pages + 1) %}
+        <a href="{{ url_for('supplier_return_bp.supplier_returns', page=page, reason=reason_filter) }}"
+           class="px-3 py-1 rounded border {{ 'bg-green-600 text-white' if page == current_page else 'bg-white text-gray-700 hover:bg-gray-200' }}">
+           {{ page }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Manual Return Section with Feedback Message - ISOLATED -->
+<div class="card-custom p-6 mb-8 border border-gray-300">
+    <h2 class="text-lg font-semibold mb-4 text-gray-800">🔁 Manual Return (by Stock ID + Product ID)</h2>
+    
+    <!-- ISOLATED form - doesn't affect Section A -->
+    <form method="POST" action="{{ url_for('supplier_return_bp.manual_return_lookup') }}" class="flex gap-4 mb-6">
+        <input name="stock_id" required placeholder="Stock ID" class="border px-3 py-2 rounded" />
+        <input name="product_id" required placeholder="Product ID" class="border px-3 py-2 rounded" />
+        
+        <!-- Add hidden fields to preserve Section A state -->
+        <input type="hidden" name="preserve_filters" value="true">
+        <input type="hidden" name="current_reason_filter" value="{{ reason_filter }}">
+        <input type="hidden" name="current_page" value="{{ current_page }}">
+        
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <i class="fas fa-search mr-1"></i> Fetch
+        </button>
+    </form>
+
+    {% if manual_message %}
+    <div class="bg-yellow-100 text-yellow-800 border border-yellow-300 px-4 py-2 rounded mb-4">
+        {{ manual_message }}
+    </div>
+    {% endif %}
+
+    {% if manual_item %}
+    <!-- Manual Return Result Display -->
+    <div class="p-4 border rounded bg-white">
+        <h3 class="text-md font-semibold mb-3 text-gray-800">Return Stock Details:</h3>
+        <table class="w-full">
+            <tr><td class="py-1 font-medium">Stock ID:</td><td>{{ manual_item.StockID }}</td></tr>
+            <tr><td class="py-1 font-medium">Product:</td><td>{{ manual_item.ProductName }}</td></tr>
+            <tr><td class="py-1 font-medium">Supplier:</td><td>{{ manual_item.SupplierName }}</td></tr>
+            <tr><td class="py-1 font-medium">Quantity:</td><td>{{ manual_item.Quantity }}</td></tr>
+            <tr><td class="py-1 font-medium">Damaged:</td><td>{{ manual_item.Damaged }}</td></tr>
+            <tr><td class="py-1 font-medium">Status:</td><td>{{ manual_item.Status }}</td></tr>
+            <tr><td class="py-1 font-medium">Expiry Date:</td><td>{{ manual_item.ExpDate.strftime('%Y-%m-%d') if manual_item.ExpDate else 'N/A' }}</td></tr>
+        </table>
+
+        <!-- Modal Trigger -->
+        <button onclick="openReasonModal()" class="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+            <i class="fas fa-undo mr-1"></i> Return This Item
+        </button>
+    </div>
+
+    <!-- Modal -->
+    <div id="reasonModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <h3 class="text-lg font-semibold mb-4">Enter Return Reason</h3>
+        <form method="POST" action="{{ url_for('supplier_return_bp.process_return') }}">
+            <input type="hidden" name="stock_id" value="{{ manual_item.StockID }}">
+            <input type="hidden" name="product_id" value="{{ manual_item.ProductID }}">
+            <input type="hidden" name="quantity" value="{{ manual_item.Quantity }}">
+            
+            <!-- Preserve Section A state after manual return -->
+            <input type="hidden" name="manual_return" value="true">
+            <input type="hidden" name="current_reason_filter" value="{{ reason_filter }}">
+            <input type="hidden" name="current_page" value="{{ current_page }}">
+            
+            <input type="text" name="reason" placeholder="Reason (e.g., Changed mind)" required class="w-full px-4 py-2 border rounded mb-4" />
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeReasonModal()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Submit Return</button>
+            </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Search functionality for Section A only
+document.getElementById('searchInput')?.addEventListener('input', function () {
+    const search = this.value.toLowerCase();
+    const rows = document.querySelectorAll('.return-row');
+
+    rows.forEach(row => {
+        const product = row.dataset.product;
+        const supplier = row.dataset.supplier;
+        const show = product.includes(search) || supplier.includes(search);
+        row.style.display = show ? '' : 'none';
+    });
+});
+
+// Modal functions for Section B
+function openReasonModal() {
+    document.getElementById('reasonModal').classList.remove('hidden');
+}
+
+function closeReasonModal() {
+    document.getElementById('reasonModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('reasonModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeReasonModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeReasonModal();
+    }
+});
+</script>
+{% endblock %}

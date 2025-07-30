@@ -13,7 +13,7 @@
     <!-- Total Sales -->
     <div class="mt-6 bg-white p-6 rounded-lg shadow-lg">
       <h2 class="text-xl font-semibold text-slate-800">Total Sales This Month</h2>
-      <p class="text-2xl font-bold text-emerald-600">${{ total_sales | round(2) }}</p>
+      <p class="text-2xl font-bold text-emerald-600">${{ "%.2f"|format(total_sales|float) if total_sales else "0.00" }}</p>
     </div>
 
     <!-- Charts Container -->
@@ -21,29 +21,35 @@
       <!-- Top-Selling Products -->
       <div class="bg-white p-6 rounded-lg shadow-lg">
         <h2 class="text-xl font-semibold text-slate-800 mb-4">Top-Selling Products</h2>
-        <canvas id="topSellingProductsChart" width="400" height="300"></canvas>
+        <div class="h-80 relative">
+          <canvas id="topSellingProductsChart"></canvas>
+        </div>
       </div>
 
       <!-- Least-Selling Products -->
       <div class="bg-white p-6 rounded-lg shadow-lg">
         <h2 class="text-xl font-semibold text-slate-800 mb-4">Least-Selling Products</h2>
-        <canvas id="leastSellingProductsChart" width="400" height="300"></canvas>
+        <div class="h-80 relative">
+          <canvas id="leastSellingProductsChart"></canvas>
+        </div>
       </div>
     </div>
 
     <!-- Sales Trend -->
     <div class="mt-6 bg-white p-6 rounded-lg shadow-lg">
       <h2 class="text-xl font-semibold text-slate-800 mb-4">Sales Trend (Monthly)</h2>
-      <canvas id="salesTrendChart" width="800" height="400"></canvas>
+      <div class="h-96 relative">
+        <canvas id="salesTrendChart"></canvas>
+      </div>
     </div>
 
   </div>
 </div>
 
-<!-- Hidden data containers -->
+<!-- Chart.js JSON Data -->
 <script type="application/json" id="dashboard-data">
 {
-  "totalSales": {{ total_sales | round(2) | tojson }},
+  "totalSales": {{ total_sales | tojson }},
   "topSellingProducts": {{ top_selling_products | tojson }},
   "leastSellingProducts": {{ least_selling_products | tojson }},
   "salesTrendLabels": {{ sales_trend_labels | tojson }},
@@ -63,14 +69,35 @@ document.addEventListener('DOMContentLoaded', function() {
   const trendLabels = dashboardData.salesTrendLabels || [];
   const trendValues = dashboardData.salesTrendValues || [];
 
-  // Chart configuration
-  const chartOptions = {
+  // Common chart options for proper sizing
+  const commonOptions = {
     responsive: true,
-    maintainAspectRatio: false,
+    maintainAspectRatio: false, // This is crucial for fixed container heights
     plugins: {
       legend: {
         display: true,
-        position: 'top'
+        position: 'top',
+        labels: {
+          padding: 20,
+          font: {
+            size: 12
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: 'white',
+        bodyColor: 'white',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1
+      }
+    },
+    layout: {
+      padding: {
+        top: 10,
+        bottom: 10,
+        left: 10,
+        right: 10
       }
     }
   };
@@ -81,24 +108,48 @@ document.addEventListener('DOMContentLoaded', function() {
     new Chart(ctx1, {
       type: 'bar',
       data: {
-        labels: topProducts.map(product => product.ProductName || 'Unknown'),
+        labels: topProducts.map(product => {
+          // Truncate long product names
+          const name = product.ProductName || 'Unknown';
+          return name.length > 15 ? name.substring(0, 15) + '...' : name;
+        }),
         datasets: [{
           label: 'Revenue ($)',
           data: topProducts.map(product => product.total_revenue || 0),
           backgroundColor: '#10B981',
           borderColor: '#059669',
-          borderWidth: 1
+          borderWidth: 1,
+          borderRadius: 4,
+          borderSkipped: false,
         }]
       },
       options: {
-        ...chartOptions,
+        ...commonOptions,
         scales: {
+          x: {
+            ticks: {
+              font: {
+                size: 11
+              },
+              maxRotation: 45,
+              minRotation: 0
+            },
+            grid: {
+              display: false
+            }
+          },
           y: {
             beginAtZero: true,
             ticks: {
+              font: {
+                size: 11
+              },
               callback: function(value) {
                 return '$' + value.toLocaleString();
               }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
             }
           }
         }
@@ -112,20 +163,47 @@ document.addEventListener('DOMContentLoaded', function() {
     new Chart(ctx2, {
       type: 'bar',
       data: {
-        labels: leastProducts.map(product => product.ProductName || 'Unknown'),
+        labels: leastProducts.map(product => {
+          // Truncate long product names
+          const name = product.ProductName || 'Unknown';
+          return name.length > 15 ? name.substring(0, 15) + '...' : name;
+        }),
         datasets: [{
           label: 'Units Sold',
           data: leastProducts.map(product => product.total_sold || 0),
           backgroundColor: '#F59E0B',
           borderColor: '#D97706',
-          borderWidth: 1
+          borderWidth: 1,
+          borderRadius: 4,
+          borderSkipped: false,
         }]
       },
       options: {
-        ...chartOptions,
+        ...commonOptions,
         scales: {
+          x: {
+            ticks: {
+              font: {
+                size: 11
+              },
+              maxRotation: 45,
+              minRotation: 0
+            },
+            grid: {
+              display: false
+            }
+          },
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            ticks: {
+              font: {
+                size: 11
+              },
+              stepSize: 1
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
           }
         }
       }
@@ -149,18 +227,36 @@ document.addEventListener('DOMContentLoaded', function() {
           pointBackgroundColor: '#3B82F6',
           pointBorderColor: '#1D4ED8',
           pointBorderWidth: 2,
-          pointRadius: 5
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          borderWidth: 3
         }]
       },
       options: {
-        ...chartOptions,
+        ...commonOptions,
         scales: {
+          x: {
+            ticks: {
+              font: {
+                size: 12
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
+            }
+          },
           y: {
             beginAtZero: true,
             ticks: {
+              font: {
+                size: 12
+              },
               callback: function(value) {
                 return '$' + value.toLocaleString();
               }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.1)'
             }
           }
         }
