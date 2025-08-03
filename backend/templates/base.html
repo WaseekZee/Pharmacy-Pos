@@ -221,6 +221,12 @@
                     <i class="fas fa-industry w-5 mr-3"></i>
                     Brands
                 </a>
+
+                <a href="{{ url_for('supplier_return_bp.supplier_returns') }}"
+                   class="flex items-center px-4 py-3 {{ 'bg-white/30 text-white' if active_page == 'supplier_returns' else 'text-blue-200' }} hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+                    <i class="fas fa-rotate-left w-5 mr-3"></i>
+                    Supplier Returns
+                </a>
             </nav>
         </div>
 

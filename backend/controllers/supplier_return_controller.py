@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import text
 from datetime import datetime
 from app_init import db  # or wherever your db instance is
@@ -22,34 +22,7 @@ def get_stock_dropdown_data():
     stock_ids = [row.StockID for row in result.fetchall()]
     return stock_ids
 
-@supplier_return_bp.route('/get_products_for_stock', methods=['GET'])
-def get_products_for_stock():
-    """AJAX endpoint to get products for a specific Stock ID"""
-    stock_id = request.args.get('stock_id')
-    
-    if not stock_id:
-        return {'products': []}
-    
-    query = """
-        SELECT s.ProductID, p.ProductName
-        FROM stock s
-        JOIN product p ON s.ProductID = p.ProductID
-        WHERE s.StockID = :stock_id
-        AND s.Status != 'Returned'
-        AND NOT EXISTS (
-            SELECT 1 FROM returnedstock r 
-            WHERE r.StockID = s.StockID AND r.ProductID = s.ProductID
-        )
-        ORDER BY p.ProductName
-    """
-    
-    try:
-        result = db.session.execute(text(query), {'stock_id': stock_id})
-        products = [{'product_id': row.ProductID, 'product_name': row.ProductName} 
-                   for row in result.fetchall()]
-        return {'products': products}
-    except Exception as e:
-        return {'products': [], 'error': str(e)}
+def get_returns_data(reason_filter='all', page=1, per_page=10):
     """Helper function to get returns list with filtering and pagination"""
     offset = (page - 1) * per_page
 
@@ -108,6 +81,35 @@ def get_products_for_stock():
         'total_pages': total_pages,
         'total_rows': total_rows
     }
+
+@supplier_return_bp.route('/get_products_for_stock', methods=['GET'])
+def get_products_for_stock():
+    """AJAX endpoint to get products for a specific Stock ID"""
+    stock_id = request.args.get('stock_id')
+    
+    if not stock_id:
+        return jsonify({'products': []})
+    
+    query = """
+        SELECT s.ProductID, p.ProductName
+        FROM stock s
+        JOIN product p ON s.ProductID = p.ProductID
+        WHERE s.StockID = :stock_id
+        AND s.Status != 'Returned'
+        AND NOT EXISTS (
+            SELECT 1 FROM returnedstock r 
+            WHERE r.StockID = s.StockID AND r.ProductID = s.ProductID
+        )
+        ORDER BY p.ProductName
+    """
+    
+    try:
+        result = db.session.execute(text(query), {'stock_id': stock_id})
+        products = [{'product_id': row.ProductID, 'product_name': row.ProductName} 
+                   for row in result.fetchall()]
+        return jsonify({'products': products})
+    except Exception as e:
+        return jsonify({'products': [], 'error': str(e)})
 
 @supplier_return_bp.route('/supplier_returns')
 def supplier_returns():
@@ -194,7 +196,7 @@ def process_return():
                               reason=current_reason_filter, 
                               page=current_page))
 
-@supplier_return_bp.route('/manual_return_lookup', methods=['POST'])  # Fixed route name
+@supplier_return_bp.route('/manual_return_lookup', methods=['POST'])
 def manual_return_lookup():
     stock_id = request.form.get('stock_id')
     product_id = request.form.get('product_id')
@@ -205,6 +207,9 @@ def manual_return_lookup():
     
     # Get the main returns data (Section A) - this should NOT be affected
     data = get_returns_data(current_reason_filter, current_page)
+    
+    # Get dropdown data for manual return section
+    stock_options = get_stock_dropdown_data()
 
     # Lookup manual item (Section B)
     manual_item = None
@@ -283,7 +288,7 @@ def manual_return_lookup():
         except Exception as e:
             manual_message = f"Error fetching item: {str(e)}"
     else:
-        manual_message = "Please provide both Stock ID and Product ID"
+        manual_message = "Please select both Stock ID and Product"
 
     # Render template with BOTH Section A data (preserved) AND Section B data (new lookup)
     return render_template("supplier_returns.html",
@@ -292,4 +297,5 @@ def manual_return_lookup():
                          current_page=current_page,             # Section A - preserved
                          total_pages=data['total_pages'],       # Section A - preserved
                          manual_item=manual_item,               # Section B - item details to show
-                         manual_message=manual_message)         # Section B - warning/error messages
+                         manual_message=manual_message,         # Section B - warning/error messages
+                         stock_options=stock_options)           # Dropdown data
