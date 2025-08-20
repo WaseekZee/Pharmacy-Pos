@@ -6,7 +6,7 @@ from flask_login import login_required
 
 brand_bp = Blueprint('brand_bp', __name__, url_prefix='/brands')
 @brand_bp.route('/add', methods=['GET', 'POST'])
-@login_required
+@login_required 
 def add_brand():
     if request.method == 'POST':
         name = request.form['name']
